@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>CCR — Composite Conveyor Roller / Hero Loop</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0b0d0c;
+    --green:#8dc63f;
+    --green-deep:#4f7a1e;
+    --chrome:#c9d3d6;
+    --seal:#e8622c;
+    --paper:#eef0e8;
+  }
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background: radial-gradient(120% 120% at 50% 15%, #16211a 0%, var(--ink) 60%, #050605 100%);
+    overflow:hidden;
+    font-family:'Space Mono', monospace;
+  }
+  #canvas-holder{ position:fixed; inset:0; }
+  canvas{ display:block; }
+
+  .hud{
+    position:fixed; left:0; right:0; bottom:0;
+    padding: 28px 36px 30px;
+    display:flex; align-items:flex-end; justify-content:space-between;
+    pointer-events:none;
+    z-index:5;
+  }
+  .wordmark{
+    font-family:'Archivo Black', sans-serif;
+    color: var(--paper);
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.92;
+  }
+  .wordmark span{ color: var(--green); }
+  .tagline{
+    margin-top:6px;
+    color: rgba(238,240,232,0.55);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    max-width: 260px;
+    line-height:1.5;
+  }
+  .stat{
+    text-align:right;
+    color: rgba(238,240,232,0.75);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    line-height: 1.7;
+  }
+  .stat b{ color: var(--green); font-weight:700; }
+
+  .enter-cta{
+    position:fixed; top:26px; right:34px; z-index:6;
+    display:flex; gap:8px;
+  }
+  .enter-cta a{
+    font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:0.05em;
+    text-transform:uppercase; text-decoration:none;
+    color: var(--green); border:1px solid rgba(141,198,63,0.4);
+    background: rgba(141,198,63,0.08);
+    padding: 9px 13px; border-radius:2px;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s ease, border-color 0.2s ease;
+    white-space:nowrap;
+  }
+  .enter-cta a:hover{ background: rgba(141,198,63,0.18); border-color: var(--green); }
+  .enter-cta a.primary{
+    color: var(--ink); background: var(--green); border-color: var(--green);
+  }
+  .enter-cta a.primary:hover{ background: #a3d861; }
+
+  #fade-in{
+    position:fixed; inset:0; background: var(--ink);
+    z-index: 10; pointer-events:none;
+    animation: fadeout 1.6s ease-out forwards;
+    animation-delay: .2s;
+  }
+  @keyframes fadeout{ to{ opacity:0; } }
+
+  #err{
+    position:fixed; inset:0; z-index:20;
+    display:none; align-items:center; justify-content:center;
+    background: #0b0d0c; color:#ff8a65;
+    font-family:'Space Mono', monospace; font-size:13px; line-height:1.6;
+    padding: 40px; text-align:left; white-space:pre-wrap;
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-holder"></div>
+<div id="fade-in"></div>
+<div class="enter-cta">
+  <a href="roi-calculator.html">ROI Calculator</a>
+  <a href="guide.html">Get the Guide</a>
+  <a class="primary" href="family.html">Explore the family →</a>
+</div>
+<div id="err"></div>
+
+<script>
+  // Surface any load/runtime error visibly instead of a silent blank screen.
+  function showError(msg){
+    const el = document.getElementById('err');
+    el.style.display = 'flex';
+    el.innerText = 'Scene failed to load:\n\n' + msg +
+      '\n\nThis usually means either:\n' +
+      '1) No internet connection (this page loads Three.js from a CDN), or\n' +
+      '2) It was opened directly as a file:// path. Try serving it locally, e.g.:\n' +
+      '   python3 -m http.server, then open http://localhost:8000/index.html\n' +
+      '   -- or just deploy it to Vercel, which serves it correctly over https.';
+  }
+  window.addEventListener('error', (e) => showError(e.message || String(e)));
+  window.addEventListener('unhandledrejection', (e) => showError(e.reason ? (e.reason.message || String(e.reason)) : 'unknown promise rejection'));
+</script>
+
+<div class="hud">
+  <div>
+    <div class="wordmark">Composite<span>·</span>Conveyor<span>·</span>Rollers</div>
+    <div class="tagline">Rock shield and labyrinth seal keep dust and moisture out — proven over 15 years in service.</div>
+  </div>
+  <div class="stat">
+    50–70% <b>lighter</b><br/>
+    70% <b>less noise</b><br/>
+    G6.3 <b>balance grade</b>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ---------- basic setup ----------
+const holder = document.getElementById('canvas-holder');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0b0d0c, 0.028);
+
+const camera = new THREE.PerspectiveCamera(38, window.innerWidth/window.innerHeight, 0.1, 100);
+const RIG_Y = 1.85; // height of the roller's own axis above the floor (stand height)
+camera.position.set(9.5, 5.4 + (RIG_Y - 0.9), 10.5);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+holder.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, RIG_Y, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.55;
+controls.enableZoom = false;
+controls.enablePan = false;
+controls.minPolarAngle = 1.0;
+controls.maxPolarAngle = 1.35;
+
+// ---------- lighting ----------
+scene.add(new THREE.AmbientLight(0x8fa0a0, 0.35));
+
+const key = new THREE.DirectionalLight(0xfff2df, 1.6);
+key.position.set(6, 9, 5);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -8; key.shadow.camera.right = 8;
+key.shadow.camera.top = 8; key.shadow.camera.bottom = -8;
+scene.add(key);
+
+const rim = new THREE.DirectionalLight(0x6fb7ff, 0.7);
+rim.position.set(-7, 4, -6);
+scene.add(rim);
+
+const greenGlow = new THREE.PointLight(0x8dc63f, 1.1, 9, 2);
+greenGlow.position.set(-1.5, 1.4, 1.8);
+
+// everything at "roller stand height" lives under this rig, so we only
+// ever have to set ONE y-offset instead of chasing it through every mesh
+const rig = new THREE.Group();
+rig.position.y = RIG_Y;
+scene.add(rig);
+rig.add(greenGlow);
+
+// ---------- floor ----------
+const floorGeo = new THREE.CircleGeometry(14, 64);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x0e100e, roughness: 1, metalness: 0 });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const grid = new THREE.GridHelper(28, 56, 0x2a3a24, 0x1a201a);
+grid.position.y = 0.005;
+scene.add(grid);
+
+// ---------- materials ----------
+const matGreenShell = new THREE.MeshPhysicalMaterial({
+  color: 0x8dc63f, roughness: 0.42, metalness: 0.05, clearcoat: 0.35, clearcoatRoughness: 0.4
+});
+const matGreenInner = new THREE.MeshStandardMaterial({ color: 0x4f7a1e, roughness: 0.6, metalness: 0.05, side: THREE.DoubleSide });
+const matChrome = new THREE.MeshStandardMaterial({ color: 0xd7dee0, roughness: 0.18, metalness: 0.95 });
+const matDarkPoly = new THREE.MeshStandardMaterial({ color: 0x1c1e1c, roughness: 0.55, metalness: 0.2 });
+const matSeal = new THREE.MeshStandardMaterial({ color: 0xe8622c, roughness: 0.35, metalness: 0.1, emissive: 0x7a2a0c, emissiveIntensity: 0.35 });
+const matFrame = new THREE.MeshStandardMaterial({ color: 0x2b2f2c, roughness: 0.7, metalness: 0.4 });
+const matBelt = new THREE.MeshStandardMaterial({ color: 0x15140f, roughness: 0.9, metalness: 0.0 });
+
+// ---------- roller group (this is what spins) ----------
+const rollerGroup = new THREE.Group();
+rig.add(rollerGroup);
+
+const ROLLER_LEN = 5.2;
+const R = 1.0;
+const SOLID_LEN = ROLLER_LEN * 0.58;
+const CUT_LEN = ROLLER_LEN * 0.42;
+
+// shaft — runs full length plus stub ends
+const shaft = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.16, 0.16, ROLLER_LEN + 1.5, 24),
+  matChrome
+);
+shaft.rotation.z = Math.PI/2;
+shaft.castShadow = true;
+rollerGroup.add(shaft);
+
+// solid outer shell (left portion)
+const solidShell = new THREE.Mesh(
+  new THREE.CylinderGeometry(R, R, SOLID_LEN, 56, 1, false),
+  matGreenShell
+);
+solidShell.rotation.z = Math.PI/2;
+solidShell.position.x = -(ROLLER_LEN/2) + SOLID_LEN/2;
+solidShell.castShadow = true;
+solidShell.receiveShadow = true;
+rollerGroup.add(solidShell);
+
+// cutaway outer shell (right portion) — open wedge, thetaLength 270°
+const cutShell = new THREE.Mesh(
+  new THREE.CylinderGeometry(R, R, CUT_LEN, 56, 1, true, 0, Math.PI * 1.5),
+  matGreenShell
+);
+cutShell.rotation.z = Math.PI/2;
+cutShell.position.x = (ROLLER_LEN/2) - CUT_LEN/2;
+cutShell.castShadow = true;
+cutShell.receiveShadow = true;
+rollerGroup.add(cutShell);
+
+// inner wall visible through the wedge cut (slightly smaller radius, double sided)
+const innerWall = new THREE.Mesh(
+  new THREE.CylinderGeometry(R - 0.09, R - 0.09, CUT_LEN, 56, 1, true, 0, Math.PI * 1.5),
+  matGreenInner
+);
+innerWall.rotation.z = Math.PI/2;
+innerWall.position.x = (ROLLER_LEN/2) - CUT_LEN/2;
+rollerGroup.add(innerWall);
+
+// cross-section cap between solid and cutaway — concentric "target" rings
+const capX = -(ROLLER_LEN/2) + SOLID_LEN;
+function ring(rOuter, rInner, mat, x){
+  const m = new THREE.Mesh(new THREE.RingGeometry(rInner, rOuter, 56), mat);
+  m.rotation.y = Math.PI/2;
+  m.position.x = x;
+  return m;
+}
+rollerGroup.add(ring(R, R-0.09, matGreenShell, capX));
+rollerGroup.add(ring(R-0.09, 0.55, matGreenInner, capX));
+rollerGroup.add(ring(0.55, 0.16, matDarkPoly, capX));
+
+// bearing housing block near far end (inside the cutaway)
+const bearingHousing = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.55, 0.55, 0.5, 40),
+  matDarkPoly
+);
+bearingHousing.rotation.z = Math.PI/2;
+bearingHousing.position.x = ROLLER_LEN/2 - 0.35;
+rollerGroup.add(bearingHousing);
+
+// chrome bearing race
+const bearing = new THREE.Mesh(
+  new THREE.TorusGeometry(0.34, 0.09, 16, 40),
+  matChrome
+);
+bearing.rotation.y = Math.PI/2;
+bearing.position.x = ROLLER_LEN/2 - 0.42;
+rollerGroup.add(bearing);
+
+// labyrinth / centrifugal flinger seal — the hero detail
+const sealX = ROLLER_LEN/2 - 0.08;
+const seal = new THREE.Mesh(
+  new THREE.TorusGeometry(0.46, 0.1, 16, 40),
+  matSeal
+);
+seal.rotation.y = Math.PI/2;
+seal.position.x = sealX;
+rollerGroup.add(seal);
+
+// outer seal / rock shield — the outermost guard, flared past the tube's
+// own diameter so it physically stands proud of the roller end and takes
+// the first hit from rock/debris before it ever reaches the seal
+const matRockShield = new THREE.MeshStandardMaterial({ color: 0x1f231e, roughness: 0.85, metalness: 0.08 });
+const rockShieldX = ROLLER_LEN/2 + 0.2;
+const rockShield = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.48, R + 0.14, 0.16, 48),
+  matRockShield
+);
+rockShield.rotation.z = Math.PI/2;
+rockShield.position.x = rockShieldX;
+rockShield.castShadow = true;
+rollerGroup.add(rockShield);
+
+// a thin proud lip so the shield edge catches the key light
+const shieldLip = new THREE.Mesh(
+  new THREE.TorusGeometry(R + 0.14, 0.03, 10, 48),
+  matChrome
+);
+shieldLip.rotation.y = Math.PI/2;
+shieldLip.position.x = rockShieldX - 0.06;
+rollerGroup.add(shieldLip);
+
+// ---------- conveyor frame (static, does NOT spin) ----------
+const frameGroup = new THREE.Group();
+rig.add(frameGroup);
+
+function bracket(x){
+  const g = new THREE.Group();
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.7, 0.9), matFrame);
+  post.position.set(x, -0.85 - R*0.15, 0);
+  post.castShadow = true; post.receiveShadow = true;
+  g.add(post);
+  const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.32, 0.5), matDarkPoly);
+  pillow.position.set(x, 0.02, 0);
+  pillow.castShadow = true;
+  g.add(pillow);
+  return g;
+}
+frameGroup.add(bracket(-ROLLER_LEN/2 - 0.55));
+frameGroup.add(bracket(ROLLER_LEN/2 + 0.55));
+
+const rail = new THREE.Mesh(new THREE.BoxGeometry(ROLLER_LEN + 1.6, 0.12, 0.9), matFrame);
+rail.position.y = -1.62;
+rail.receiveShadow = true; rail.castShadow = true;
+frameGroup.add(rail);
+
+// ---------- belt (top strip, scrolling UV to fake motion) ----------
+const beltGeo = new THREE.PlaneGeometry(ROLLER_LEN + 2.4, 1.9, 40, 4);
+const beltCanvas = document.createElement('canvas');
+beltCanvas.width = 256; beltCanvas.height = 32;
+const bctx = beltCanvas.getContext('2d');
+bctx.fillStyle = '#15140f'; bctx.fillRect(0,0,256,32);
+bctx.fillStyle = '#2a281f';
+for(let i=0;i<8;i++){ bctx.fillRect(i*32, 0, 6, 32); }
+const beltTex = new THREE.CanvasTexture(beltCanvas);
+beltTex.wrapS = THREE.RepeatWrapping;
+beltTex.wrapT = THREE.RepeatWrapping;
+beltTex.repeat.set(6,1);
+const beltTopMat = new THREE.MeshStandardMaterial({ map: beltTex, roughness: 0.95, metalness: 0 });
+const beltTop = new THREE.Mesh(beltGeo, beltTopMat);
+beltTop.rotation.x = -Math.PI/2;
+beltTop.position.y = R + 0.02;
+beltTop.receiveShadow = true;
+rig.add(beltTop);
+
+// ---------- dust motes: hard bounce off the rock shield, never enter the roller ----------
+const MOTE_COUNT = 90;
+const moteGeo = new THREE.SphereGeometry(0.022, 6, 6);
+const moteMat = new THREE.MeshBasicMaterial({ color: 0xd8c9a3, transparent:true, opacity:0.85 });
+const motes = [];
+const moteInstanced = new THREE.InstancedMesh(moteGeo, moteMat, MOTE_COUNT);
+moteInstanced.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+rig.add(moteInstanced);
+
+// Hard wall: no mote's x is ever allowed to go below this, full stop.
+const SEAL_BARRIER_X = rockShieldX - 0.22; // dust hits the rock shield first, before it ever reaches the seal
+
+function resetMote(m){
+  m.pos.set(
+    ROLLER_LEN/2 + 0.4 + Math.random()*2.4,
+    (Math.random()-0.5)*1.6 + 0.4,
+    (Math.random()-0.5)*1.6
+  );
+  m.speed = 0.55 + Math.random()*0.5;
+  m.phase = Math.random()*Math.PI*2;
+  m.state = 'fly';
+  m.bounceT = 0;
+}
+
+for(let i=0;i<MOTE_COUNT;i++){
+  const m = { pos: new THREE.Vector3(), speed:0, phase:0, state:'fly', bounceT:0, kickY:0, kickZ:0, bounceSpeed:0 };
+  resetMote(m);
+  // stagger initial x so they don't all arrive at the shield in sync
+  m.pos.x -= Math.random()*2.5;
+  motes.push(m);
+}
+const dummy = new THREE.Object3D();
+
+function updateMotes(t, dt){
+  for(let i=0;i<MOTE_COUNT;i++){
+    const m = motes[i];
+
+    if(m.state === 'fly'){
+      const nextX = m.pos.x - m.speed * dt;
+      m.pos.y += Math.sin(t*1.3 + m.phase) * dt * 0.06;
+      m.pos.z += Math.cos(t*1.1 + m.phase) * dt * 0.06;
+
+      if(nextX <= SEAL_BARRIER_X){
+        // hit the wall exactly at the barrier — clamp, never cross it
+        m.pos.x = SEAL_BARRIER_X;
+        m.state = 'bounce';
+        m.bounceT = 0;
+        let ang = Math.atan2(m.pos.z, m.pos.y);
+        if(Math.hypot(m.pos.y, m.pos.z) < 0.06) ang = Math.random() * Math.PI * 2;
+        m.kickY = Math.cos(ang);
+        m.kickZ = Math.sin(ang);
+        m.bounceSpeed = 0.9 + Math.random()*0.7;
+      } else {
+        m.pos.x = nextX;
+      }
+    } else {
+      // deflected: scatter outward and back the way it came, then respawn
+      m.bounceT += dt;
+      m.pos.x += m.bounceSpeed * dt * 1.3;
+      m.pos.y += m.kickY * dt * 1.8;
+      m.pos.z += m.kickZ * dt * 1.8;
+      if(m.bounceT > 0.85){
+        resetMote(m);
+      }
+    }
+
+    // safety net: whatever happens above, x can never end up past the barrier
+    if(m.pos.x < SEAL_BARRIER_X) m.pos.x = SEAL_BARRIER_X;
+
+    dummy.position.copy(m.pos);
+    let s = 0.7 + 0.6*Math.abs(Math.sin(t*2+m.phase));
+    if(m.state === 'bounce'){ s *= Math.max(0, 1 - m.bounceT/0.85); } // dissolve as it scatters away
+    dummy.scale.setScalar(s);
+    dummy.updateMatrix();
+    moteInstanced.setMatrixAt(i, dummy.matrix);
+  }
+  moteInstanced.instanceMatrix.needsUpdate = true;
+}
+
+// ---------- resize ----------
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ---------- animate ----------
+const clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  rollerGroup.rotation.x += dt * 1.35; // roller spin
+  beltTex.offset.x -= dt * 0.42;        // belt motion
+
+  greenGlow.intensity = 0.9 + Math.sin(t*0.8)*0.15;
+
+  updateMotes(t, dt);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>CCR — Roller Family / Platform View</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0b0d0c;
+    --green:#8dc63f;
+    --paper:#eef0e8;
+    --panel-bg: rgba(14,16,14,0.92);
+  }
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background: radial-gradient(120% 120% at 50% 10%, #16211a 0%, var(--ink) 60%, #050605 100%);
+    overflow:hidden;
+    font-family:'Space Mono', monospace;
+  }
+  #canvas-holder{ position:fixed; inset:0; }
+  canvas{ display:block; }
+
+  .topbar{
+    position:fixed; top:0; left:0; right:0;
+    padding: 26px 34px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    pointer-events:none; z-index:5;
+  }
+  .wordmark{
+    font-family:'Archivo Black', sans-serif;
+    color: var(--paper); font-size: 15px; letter-spacing: 0.08em;
+    text-transform: uppercase; opacity:0.92;
+  }
+  .wordmark span{ color: var(--green); }
+  .sub{
+    margin-top:5px; color: rgba(238,240,232,0.5);
+    font-size: 11px; letter-spacing: 0.04em;
+  }
+  .hint{
+    color: rgba(238,240,232,0.45); font-size: 11px; letter-spacing:0.04em;
+    text-align:right;
+  }
+  .back-home{
+    display:inline-flex; gap:8px; margin-top:8px; pointer-events:auto;
+  }
+  .back-home a{
+    font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:0.05em;
+    text-transform:uppercase; text-decoration:none;
+    color: rgba(238,240,232,0.55); border:1px solid rgba(238,240,232,0.2);
+    padding: 6px 12px; border-radius:2px;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .back-home a:hover{ color: var(--green); border-color: var(--green); }
+
+  /* floating per-platform labels, projected from 3D each frame */
+  #labels{ position:fixed; inset:0; pointer-events:none; z-index:4; }
+  .plabel{
+    position:absolute; transform: translate(-50%, -100%);
+    text-align:center; white-space:nowrap;
+    transition: opacity 0.2s ease;
+  }
+  .plabel .pname{
+    font-family:'Archivo Black', sans-serif;
+    font-size: 11px; letter-spacing: 0.05em; text-transform:uppercase;
+    color: var(--paper); text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+    margin-bottom: 4px;
+  }
+  .plabel .pstat{
+    font-size: 9.5px; color: rgba(238,240,232,0.72);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+
+  /* slide-in spec panel */
+  #panel{
+    position:fixed; top:0; right:0; bottom:0; width: 340px;
+    background: var(--panel-bg);
+    border-left: 1px solid rgba(141,198,63,0.25);
+    transform: translateX(100%);
+    transition: transform 0.45s cubic-bezier(.2,.8,.2,1);
+    z-index: 8; padding: 30px 26px;
+    box-sizing:border-box; overflow-y:auto;
+    backdrop-filter: blur(6px);
+  }
+  #panel.open{ transform: translateX(0); }
+  #panel .close{
+    position:absolute; top:22px; right:24px;
+    background:none; border:none; color: rgba(238,240,232,0.5);
+    font-family:'Space Mono',monospace; font-size:12px; letter-spacing:0.05em;
+    cursor:pointer; padding:6px;
+  }
+  #panel .close:hover{ color: var(--paper); }
+  #panel .ptitle{
+    font-family:'Archivo Black', sans-serif; color: var(--green);
+    font-size: 18px; letter-spacing:0.03em; margin: 6px 0 4px; text-transform:uppercase;
+  }
+  #panel .ptag{
+    color: rgba(238,240,232,0.55); font-size:11.5px; line-height:1.6; margin-bottom:20px;
+  }
+  #panel table{ width:100%; border-collapse: collapse; }
+  #panel td{
+    font-size: 11px; padding: 7px 0; vertical-align:top;
+    border-bottom: 1px solid rgba(238,240,232,0.08);
+    color: rgba(238,240,232,0.85);
+  }
+  #panel td:first-child{ color: rgba(141,198,63,0.85); width: 46%; padding-right:10px; }
+
+  #variantControls{ margin: -4px 0 20px; }
+  #variantControls .mrlabel{
+    font-size: 10px; letter-spacing:0.06em; text-transform:uppercase;
+    color: rgba(238,240,232,0.45); margin-bottom: 8px;
+  }
+  #variantControls .mrbtns{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  #variantControls .mrbtn{
+    font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:0.03em;
+    padding: 7px 11px; border-radius:2px; cursor:pointer;
+    background: rgba(238,240,232,0.06); border:1px solid rgba(238,240,232,0.18);
+    color: rgba(238,240,232,0.75);
+  }
+  #variantControls .mrbtn:hover{ border-color: rgba(141,198,63,0.5); }
+  #variantControls .mrbtn.active{
+    background: rgba(141,198,63,0.16); border-color: var(--green); color: var(--green);
+  }
+  #variantControls .mrfr{
+    display:flex; align-items:center; gap:8px; font-size:10.5px;
+    color: rgba(238,240,232,0.65); cursor:pointer; user-select:none;
+  }
+  #variantControls .mrfr input{ accent-color: #e8622c; }
+  #panel .explore{
+    display:block; width:100%; margin-top:22px; padding: 12px 0;
+    background: rgba(141,198,63,0.12); border: 1px solid rgba(141,198,63,0.4);
+    color: var(--green); font-family:'Space Mono',monospace; font-size:11px;
+    letter-spacing:0.06em; text-transform:uppercase; text-align:center;
+    border-radius: 2px; cursor:pointer;
+  }
+  #panel .explore:hover{ background: rgba(141,198,63,0.2); }
+  #panel .explore.disabled{
+    opacity:0.55; cursor:not-allowed;
+  }
+  #panel .note{
+    margin-top:10px; font-size:9.5px; color: rgba(238,240,232,0.35); line-height:1.5; text-align:center;
+  }
+
+  #err{
+    position:fixed; inset:0; z-index:20;
+    display:none; align-items:center; justify-content:center;
+    background: #0b0d0c; color:#ff8a65;
+    font-family:'Space Mono', monospace; font-size:13px; line-height:1.6;
+    padding: 40px; text-align:left; white-space:pre-wrap;
+  }
+  #fade-in{
+    position:fixed; inset:0; background: var(--ink); z-index: 10; pointer-events:none;
+    animation: fadeout 1.4s ease-out forwards; animation-delay: .15s;
+  }
+  @keyframes fadeout{ to{ opacity:0; } }
+
+  /* exploded-view part labels */
+  #partlabels{ position:fixed; inset:0; pointer-events:none; z-index:4; }
+  .xlabel{
+    position:absolute; transform: translate(-50%, -50%);
+    display:flex; align-items:center; gap:8px;
+    opacity:0; transition: opacity 0.25s ease;
+    white-space:nowrap;
+  }
+  .xlabel .dot{ width:5px; height:5px; border-radius:50%; background: var(--green); flex-shrink:0; }
+  .xlabel .xname{
+    font-size: 10.5px; letter-spacing:0.04em; color: var(--paper);
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+  }
+
+  /* exploded-view bottom toolbar */
+  #explodeBar{
+    position:fixed; left:50%; bottom:34px; transform: translateX(-50%);
+    display:none; align-items:center; gap:18px;
+    background: rgba(14,16,14,0.88); border:1px solid rgba(141,198,63,0.3);
+    border-radius: 4px; padding: 14px 22px;
+    z-index: 9; backdrop-filter: blur(6px);
+  }
+  #explodeBar.open{ display:flex; }
+  #explodeBar .elabel{
+    font-size: 10px; letter-spacing:0.06em; color: rgba(238,240,232,0.55);
+    text-transform:uppercase; white-space:nowrap;
+  }
+  #explodeBar input[type=range]{
+    width: 220px; accent-color: var(--green);
+  }
+  #explodeBar .back{
+    background: none; border: 1px solid rgba(238,240,232,0.25);
+    color: rgba(238,240,232,0.8); font-family:'Space Mono',monospace;
+    font-size: 10.5px; letter-spacing:0.05em; text-transform:uppercase;
+    padding: 9px 14px; border-radius:2px; cursor:pointer; white-space:nowrap;
+  }
+  #explodeBar .back:hover{ border-color: var(--green); color: var(--green); }
+</style>
+</head>
+<body>
+
+<div id="canvas-holder"></div>
+<div id="labels"></div>
+<div id="partlabels"></div>
+<div id="fade-in"></div>
+<div id="err"></div>
+
+<div class="topbar">
+  <div>
+    <div class="wordmark">Composite<span>·</span>Conveyor<span>·</span>Rollers</div>
+    <div class="sub" id="subtitle">Roller family — platform view</div>
+    <div class="back-home">
+      <a href="index.html">← Hero</a>
+      <a href="roi-calculator.html">ROI Calculator</a>
+      <a href="guide.html">Get the Guide</a>
+    </div>
+  </div>
+  <div class="hint" id="hint">Click a platform to inspect specs</div>
+</div>
+
+<div id="panel">
+  <button class="close" id="closePanel">✕ CLOSE</button>
+  <div class="ptitle" id="ptitle">—</div>
+  <div class="ptag" id="ptag">—</div>
+  <div id="variantControls"></div>
+  <table id="pspecs"></table>
+  <button class="explore" id="exploreBtn">
+    Explore exploded view →
+  </button>
+</div>
+
+<div id="explodeBar">
+  <button class="back" id="backBtn">← Back to platforms</button>
+  <button class="back" id="specsBtn">Specs</button>
+  <span class="elabel">Assembled</span>
+  <input type="range" id="explodeSlider" min="0" max="100" value="0" />
+  <span class="elabel">Exploded</span>
+</div>
+
+<script>
+  function showError(msg){
+    const el = document.getElementById('err');
+    el.style.display = 'flex';
+    el.innerText = 'Scene failed to load:\n\n' + msg +
+      '\n\nMost likely: no internet connection (loads Three.js from a CDN), ' +
+      'or opened directly as file://. Serve locally or deploy to Vercel.';
+  }
+  window.addEventListener('error', (e) => showError(e.message || String(e)));
+  window.addEventListener('unhandledrejection', (e) => showError(e.reason ? (e.reason.message || String(e.reason)) : 'unknown rejection'));
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// PRODUCT DATA — pulled directly from the CCR brochure set.
+// Each product's 3 stat lines use whatever real metrics THAT
+// datasheet reports, rather than forcing identical categories
+// across products tested on different scales.
+// ============================================================
+const PRODUCTS = [
+  {
+    id: 'gfhdpe', name: 'Glass-Filled HDPE', color: 0x8dc63f, geom: 'tube',
+    tag: 'The original welded composite roller — the baseline of the range.',
+    stats: ['Diameters 90–219mm', 'Roll length up to 3000mm', 'Balance grade G40 (G16/G6.3 avail.)'],
+    specs: [
+      ['Tube Construction','Sinter extruded glass-filled HDPE'],
+      ['Bearing Housing','Injection moulded glass-filled HDPE, welded'],
+      ['Max Roll Length','2500mm (3000mm from Ø152mm)'],
+      ['Wall Thickness','15 / 20 / 25mm or to design'],
+      ['Shaft Diameter','25–65mm / CEMA F+'],
+      ['Bearing Type','Timken / SKF / FAG 2RS C3/C4'],
+      ['TIR','0.2mm standard, 0.1mm if required'],
+      ['Weigh Scale Balance','All rollers to G40; G16 / G6.3 available'],
+    ]
+  },
+  {
+    id: 'uhmwpe', name: 'UHMWPE', color: 0x3f6fb0, geom: 'tube',
+    tag: 'Ultra-high-molecular-weight polyethylene — built for extreme abrasion and impact.',
+    stats: ['Impact resistance: Ultimate', 'Abrasion resistance: Excellent', 'Acid resistance: Excellent'],
+    specs: [
+      ['Tube Construction','Sinter extruded glass-filled UHMWPE'],
+      ['Molecular Weight','> 8.7 million amu'],
+      ['Max Roll Length','2000mm'],
+      ['Diameters','127 / 133 / 152 / 178mm'],
+      ['Wall Thickness','15 / 20mm'],
+      ['Shaft Diameter','25–50mm'],
+      ['Impact Resistance','Ultimate'],
+      ['Abrasion Resistance','Excellent (lowest relative wear of tested materials)'],
+      ['Acid Resistance','Excellent'],
+    ]
+  },
+  {
+    id: 'basegrey', name: 'Base Grey', color: 0x4a4d49, geom: 'tube',
+    tag: 'Entry-level composite roller — designed to last longer than it needs to.',
+    stats: ['Power savings 12–26% vs steel', 'Balance grade G40', '12-month warranty'],
+    specs: [
+      ['Positioning','Entry-level composite roller'],
+      ['Face Length','190mm – 2000mm'],
+      ['Power Consumption','12–26% less than equivalent steel'],
+      ['Balancing','G40'],
+      ['Diameters','90/102/108/114/127/133/152/159/165/178mm'],
+      ['Bearings','6205 / 6305 / 6306 — CEMA C/D'],
+      ['Features','Great price, light weight, low noise, belt-friendly, recyclable'],
+      ['Warranty','12 months'],
+    ]
+  },
+  {
+    id: 'duallayer', name: 'Dual-Layer HDPE', color: 0x3fc7c9, geom: 'tube',
+    tag: 'A stiff inner core under a super-abrasion outer skin, with a built-in wear indicator.',
+    stats: ['Outer skin: 3.4× more abrasion-resistant than steel', 'Impact resistance: Ultimate', 'Balance G6.3–G40'],
+    specs: [
+      ['Tube Construction','18–20mm stiff core + 6–13mm abrasive outer skin'],
+      ['Max Roll Length','2000mm'],
+      ['Diameters','127 / 152 / 178mm'],
+      ['Wall Thickness','28–33mm'],
+      ['Impact Resistance','Ultimate'],
+      ['Abrasion Resistance','Excellent — outer skin ~3.4× steel'],
+      ['Acid Resistance','Excellent'],
+      ['Dynamic Balancing','G6.3 – G40'],
+      ['Design Note','Wear layer gives an early warning wear indicator'],
+    ]
+  },
+  {
+    id: 'fr', name: 'Flame Retardant', color: 0x3a1414, accent: 0xe8622c, geom: 'tube',
+    tag: 'Composite roller rated to self-extinguish, for underground and confined operations.',
+    stats: ['Self-extinguish in <6 sec (V0, MSHA IC 335/01)', 'Toxicity index 2.9 / 10', 'Abrasion resistance: Excellent'],
+    specs: [
+      ['Fire Resistance','V0 — self-extinguish < 6 sec, MSHA IC 335/01'],
+      ['Test Condition','60 sec continuous burn at 1050°C (1922°F)'],
+      ['Toxicity Index','2.9 (max scale 5/10)'],
+      ['Abrasion Resistance','Excellent'],
+      ['Acid Resistance','Excellent'],
+      ['Max Roll Length','2500mm (3000mm from Ø152mm)'],
+      ['Diameters','90–220mm'],
+    ]
+  },
+  {
+    id: 'fras', name: 'FRAS', color: 0x6b4a3a, accent: 0xe8622c, geom: 'tube',
+    tag: 'Flame-retardant AND anti-static — proven in heavy-duty service at Freeport-McMoRan, Indonesia.',
+    stats: ['Self-extinguish in <6 sec (V0)', 'Conductivity < 300,000 Ω over 10mm', 'Toxicity index 3.0 / 10'],
+    specs: [
+      ['Fire Resistance','V0 — self-extinguish < 6 sec, MSHA IC 335/01'],
+      ['Conductivity','< 300,000 Ohms over 10mm'],
+      ['Toxicity Index','3.0 (max scale 5/10)'],
+      ['Abrasion Resistance','Good'],
+      ['Acid Resistance','Excellent'],
+      ['Field Reference','CEMA E, 178mm (7") — Freeport-McMoRan, Indonesia'],
+    ]
+  },
+  {
+    id: 'impact', name: 'Impact Roller', color: 0x141414, accent: 0x8a1f1f, geom: 'ribbed',
+    tag: 'Rings absorb impact at loading points, on a steel or aluminium core. Available in rubber or PU, each with an FR option.',
+    materials: ['rubber','pu'], defaultMaterial: 'rubber',
+    stats: ['Tensile strength: 7 MPa (rubber)', 'Elongation at break: ≥200%', 'FR option: V0/V1 self-extinguishing'],
+    specs: [
+      ['Tube Construction','Conveyance steel / aluminium'],
+      ['Shore Hardness','64–68 Shore (A)'],
+      ['Tensile Strength','7 MPa'],
+      ['Elongation at Break','200% minimum'],
+      ['Max Abrasion Volume Loss','87.63 mm³'],
+      ['Temp. Range','-30°C / 80°C'],
+    ]
+  },
+  {
+    id: 'pudisc', name: 'Disc Return Roller', color: 0xe2782c, geom: 'discs',
+    tag: 'Spaced discs on a steel core keep the belt\u2019s return run clean of carry-back. Rubber, PU, or a continuous helicoidal spiral — each with an FR option.',
+    materials: ['rubber','pu','helicoidal'], defaultMaterial: 'pu',
+    stats: ['PU tensile strength: 40.3 MPa', 'Elongation at break: 591%', 'Abrasion mass loss: 20mg (ISO 20344, PU)'],
+    specs: [
+      ['Tube Construction','Conveyance steel / aluminium core'],
+      ['Shore Hardness','94 Shore PU (78–80 on FR variant)'],
+      ['PU Tensile Strength','40.3 MPa'],
+      ['Elongation at Break','591%'],
+      ['Max Abrasion Mass Loss','20mg (ISO 20344, PU)'],
+    ]
+  },
+];
+
+// ============================================================
+// SCENE SETUP
+// ============================================================
+const holder = document.getElementById('canvas-holder');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0b0d0c, 0.018);
+
+const camera = new THREE.PerspectiveCamera(34, window.innerWidth/window.innerHeight, 0.1, 200);
+const OVERVIEW_POS = new THREE.Vector3(15, 12, 17);
+const OVERVIEW_TARGET = new THREE.Vector3(0, 1.2, 0);
+camera.position.copy(OVERVIEW_POS);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+holder.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(OVERVIEW_TARGET);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.35;
+controls.minDistance = 8;
+controls.maxDistance = 26;
+controls.minPolarAngle = 0.6;
+controls.maxPolarAngle = 1.15;
+
+scene.add(new THREE.AmbientLight(0x8fa0a0, 0.4));
+const key = new THREE.DirectionalLight(0xfff2df, 1.4);
+key.position.set(10, 14, 8);
+key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.left=-16; key.shadow.camera.right=16;
+key.shadow.camera.top=16; key.shadow.camera.bottom=-16;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x6fb7ff, 0.5);
+rim.position.set(-10, 6, -8);
+scene.add(rim);
+
+const floor = new THREE.Mesh(new THREE.CircleGeometry(26, 64), new THREE.MeshStandardMaterial({ color: 0x0e100e, roughness:1 }));
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+const grid = new THREE.GridHelper(52, 52, 0x2a3a24, 0x171d16);
+grid.position.y = 0.005;
+scene.add(grid);
+
+// ============================================================
+// LAYOUT — two rows of 4 platforms
+// ============================================================
+const COLS = 4, ROWS = 2, SPACING_X = 6.4, SPACING_Z = 6.0;
+function layoutPos(i){
+  const col = i % COLS, row = Math.floor(i / COLS);
+  const x = (col - (COLS-1)/2) * SPACING_X;
+  const z = (row - (ROWS-1)/2) * SPACING_Z;
+  const y = 0.9 + (i % 3) * 0.18; // slight height variance for visual life
+  return new THREE.Vector3(x, y, z);
+}
+
+// ============================================================
+// ROLLER ICON BUILDERS
+// ============================================================
+
+// Rubber vs PU is a real, independent material property — only PU (and
+// PU-based helicoidal) is steel-reinforced. FR is a separate toggle on
+// top of either material, not a distinct material of its own.
+const MATERIALS = {
+  rubber:     { label: 'Rubber',              color: 0x18181a, steel: false },
+  pu:         { label: 'Polyurethane (PU)',    color: 0xdd7a2c, steel: true  },
+  helicoidal: { label: 'Helicoidal (PU)',      color: 0xdd7a2c, steel: true  },
+};
+const FR_ACCENT = 0xe8622c;
+
+class HelixCurve extends THREE.Curve {
+  constructor(length, radius, turns){ super(); this.length = length; this.radius = radius; this.turns = turns; }
+  getPoint(t, target = new THREE.Vector3()){
+    const x = -this.length/2 + t * this.length;
+    const angle = t * this.turns * Math.PI * 2;
+    return target.set(x, Math.cos(angle) * this.radius, Math.sin(angle) * this.radius);
+  }
+}
+
+function buildTubeRoller(color, accent){
+  const g = new THREE.Group();
+  const shellMat = new THREE.MeshPhysicalMaterial({ color, roughness:0.45, metalness:0.08, clearcoat:0.3 });
+  const shaftMat = new THREE.MeshStandardMaterial({ color:0xcfd6d8, roughness:0.2, metalness:0.9 });
+  const capMat = new THREE.MeshStandardMaterial({ color:0x161816, roughness:0.6, metalness:0.15 });
+
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,1.5,16), shaftMat);
+  shaft.rotation.z = Math.PI/2;
+  g.add(shaft);
+
+  const shell = new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,1.15,36), shellMat);
+  shell.rotation.z = Math.PI/2;
+  shell.castShadow = true;
+  g.add(shell);
+
+  const capL = new THREE.Mesh(new THREE.CircleGeometry(0.32,36), capMat);
+  capL.rotation.y = Math.PI/2; capL.position.x = -0.575;
+  const capR = capL.clone(); capR.position.x = 0.575; capR.rotation.y = -Math.PI/2;
+  g.add(capL, capR);
+
+  if(accent !== undefined){
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.34,0.028,10,32), new THREE.MeshStandardMaterial({ color:accent, roughness:0.4, emissive:accent, emissiveIntensity:0.25 }));
+    ring.rotation.y = Math.PI/2; ring.position.x = 0.5;
+    g.add(ring);
+  }
+  return g;
+}
+
+function buildRibbedRoller(materialId, fr){
+  const g = buildTubeRoller(0x5a5d5a, undefined); // core tube — steel/aluminium grey, no accent ring
+  const mat = MATERIALS[materialId] ?? MATERIALS.rubber;
+  const ringMat = new THREE.MeshStandardMaterial({ color: mat.color, roughness: mat.steel ? 0.5 : 0.75, metalness: mat.steel ? 0.15 : 0.05 });
+  for(let i=-4;i<=4;i++){
+    const r = new THREE.Mesh(new THREE.TorusGeometry(0.335, 0.03, 8, 24), ringMat);
+    r.rotation.y = Math.PI/2;
+    r.position.x = i * 0.11;
+    g.add(r);
+  }
+  if(fr){
+    const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.015, 8, 24), new THREE.MeshStandardMaterial({ color: FR_ACCENT, emissive: FR_ACCENT, emissiveIntensity: 0.3 }));
+    stripe.rotation.y = Math.PI/2; stripe.position.x = 0.5;
+    g.add(stripe);
+  }
+  return g;
+}
+
+function buildDiscRoller(materialId, fr){
+  const g = new THREE.Group();
+  const shaftMat = new THREE.MeshStandardMaterial({ color:0xb9c0c2, roughness:0.25, metalness:0.85 });
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,1.5,16), shaftMat);
+  shaft.rotation.z = Math.PI/2;
+  g.add(shaft);
+
+  const mat = MATERIALS[materialId] ?? MATERIALS.pu;
+  const partMat = new THREE.MeshStandardMaterial({ color: mat.color, roughness: mat.steel ? 0.45 : 0.55, metalness: mat.steel ? 0.1 : 0.05 });
+
+  if(materialId === 'helicoidal'){
+    const curve = new HelixCurve(1.1, 0.3, 5);
+    const spiral = new THREE.Mesh(new THREE.TubeGeometry(curve, 120, 0.055, 8, false), partMat);
+    spiral.castShadow = true;
+    g.add(spiral);
+  } else {
+    for(let i=-5;i<=5;i++){
+      const d = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.07,24), partMat);
+      d.rotation.z = Math.PI/2;
+      d.position.x = i * 0.1;
+      d.castShadow = true;
+      g.add(d);
+    }
+  }
+  if(fr){
+    const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.015, 8, 24), new THREE.MeshStandardMaterial({ color: FR_ACCENT, emissive: FR_ACCENT, emissiveIntensity: 0.3 }));
+    stripe.rotation.y = Math.PI/2; stripe.position.x = 0.55;
+    g.add(stripe);
+  }
+  return g;
+}
+
+function buildRollerIcon(product){
+  const mat = product.selectedMaterial ?? product.defaultMaterial;
+  const fr = product.selectedFR ?? false;
+  if(product.geom === 'ribbed') return buildRibbedRoller(mat, fr);
+  if(product.geom === 'discs') return buildDiscRoller(mat, fr);
+  return buildTubeRoller(product.color, product.accent);
+}
+
+// ============================================================
+// EXPLODED-VIEW PART BUILDERS — Mode 3
+// Each returns an array of { name, mesh, basePos: Vector3, explodeOffset: Vector3 }
+// basePos = assembled (real, physically correct) local position
+// explodeOffset = delta added at explode factor k=1
+// ============================================================
+const X_R = 1.0, X_LEN = 5.0;
+
+function genericHousingBearingShaft(color){
+  const matChrome = new THREE.MeshStandardMaterial({ color:0xd7dee0, roughness:0.18, metalness:0.95 });
+  const matDark = new THREE.MeshStandardMaterial({ color:0x1c1e1c, roughness:0.55, metalness:0.2 });
+
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15, X_LEN+1.4, 24), matChrome);
+  shaft.rotation.z = Math.PI/2; shaft.castShadow = true;
+
+  const housing = new THREE.Mesh(new THREE.CylinderGeometry(0.52,0.52,0.48,36), matDark);
+  housing.rotation.z = Math.PI/2; housing.castShadow = true;
+
+  const bearing = new THREE.Mesh(new THREE.TorusGeometry(0.32,0.085,16,36), matChrome);
+  bearing.rotation.y = Math.PI/2;
+
+  return { shaft, housing, bearing };
+}
+
+function buildExplodedPartsTube(product){
+  const parts = [];
+  const matShell = new THREE.MeshPhysicalMaterial({ color: product.color, roughness:0.42, metalness:0.06, clearcoat:0.32 });
+  const matSeal  = new THREE.MeshStandardMaterial({ color:0xe8622c, roughness:0.35, metalness:0.1, emissive:0x7a2a0c, emissiveIntensity:0.3 });
+  const matShield= new THREE.MeshStandardMaterial({ color:0x1f231e, roughness:0.85, metalness:0.08 });
+
+  // shell spans nearly the FULL roller length so it actually meets the
+  // bearing housing at k=0 (previously this was only 62% length, leaving
+  // a visible gap between the shell and the housing even when "assembled")
+  const shell = new THREE.Mesh(new THREE.CylinderGeometry(X_R, X_R, X_LEN, 56), matShell);
+  shell.rotation.z = Math.PI/2; shell.castShadow = true;
+  parts.push({ name:'Outer Shell — Tube', mesh: shell, basePos:new THREE.Vector3(0,0,0), explodeOffset:new THREE.Vector3(-2.6,0,0) });
+
+  const { shaft, housing, bearing } = genericHousingBearingShaft(product.color);
+  parts.push({ name:'Shaft', mesh: shaft, basePos:new THREE.Vector3(0,0,0), explodeOffset:new THREE.Vector3(0,-1.9,0) });
+
+  const housingX = X_LEN/2 - 0.35;
+  parts.push({ name:'Bearing Housing', mesh: housing, basePos:new THREE.Vector3(housingX,0,0), explodeOffset:new THREE.Vector3(1.0,0,0) });
+
+  const bearingX = X_LEN/2 - 0.42;
+  parts.push({ name:'Bearing', mesh: bearing, basePos:new THREE.Vector3(bearingX,0,0), explodeOffset:new THREE.Vector3(1.9,0,0) });
+
+  const sealX = X_LEN/2 - 0.08;
+  const seal = new THREE.Mesh(new THREE.TorusGeometry(0.46,0.1,16,40), matSeal);
+  seal.rotation.y = Math.PI/2;
+  parts.push({ name:'Centrifugal / Labyrinth Seal', mesh: seal, basePos:new THREE.Vector3(sealX,0,0), explodeOffset:new THREE.Vector3(2.8,0,0) });
+
+  const shieldX = X_LEN/2 + 0.2;
+  const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.48, X_R+0.14, 0.16, 48), matShield);
+  shield.rotation.z = Math.PI/2; shield.castShadow = true;
+  parts.push({ name:'Outer Seal / Rock Shield', mesh: shield, basePos:new THREE.Vector3(shieldX,0,0), explodeOffset:new THREE.Vector3(3.7,0,0) });
+
+  return parts;
+}
+
+function buildExplodedPartsRibbed(product, materialId, fr){
+  // Impact Roller — steel/aluminium core tube + rings (rubber OR PU; only PU is steel-reinforced)
+  const parts = [];
+  const mat = MATERIALS[materialId] ?? MATERIALS.rubber;
+  const matCore = new THREE.MeshStandardMaterial({ color:0x5a5d5a, roughness:0.4, metalness:0.7 });
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(0.82,0.82, X_LEN*0.9, 48), matCore);
+  core.rotation.z = Math.PI/2; core.castShadow = true;
+  parts.push({ name:'Steel / Aluminium Core Tube', mesh: core, basePos:new THREE.Vector3(0,0,0), explodeOffset:new THREE.Vector3(-2.4,0,0) });
+
+  const ringGrp = new THREE.Group();
+  const ringMat = new THREE.MeshStandardMaterial({ color: mat.color, roughness: mat.steel ? 0.5 : 0.75, metalness: mat.steel ? 0.15 : 0.05 });
+  for(let i=-8;i<=8;i++){
+    const r = new THREE.Mesh(new THREE.TorusGeometry(0.86,0.075,10,32), ringMat);
+    r.rotation.y = Math.PI/2; r.position.x = i * 0.16;
+    r.castShadow = true;
+    ringGrp.add(r);
+  }
+  if(fr){
+    const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.025, 8, 32), new THREE.MeshStandardMaterial({ color: FR_ACCENT, emissive: FR_ACCENT, emissiveIntensity: 0.3 }));
+    stripe.rotation.y = Math.PI/2;
+    ringGrp.add(stripe);
+  }
+  const ringLabel = `${mat.label} Rings${mat.steel ? ' — Steel-Reinforced' : ' — Not Steel-Reinforced'}${fr ? ', FR' : ''}`;
+  parts.push({ name: ringLabel, mesh: ringGrp, basePos:new THREE.Vector3(0,0,0), explodeOffset:new THREE.Vector3(0,0,2.6) });
+
+  const { shaft, housing, bearing } = genericHousingBearingShaft(product.color);
+  parts.push({ name:'Shaft', mesh: shaft, basePos:new THREE.Vector3(0,0,0), explodeOffset:new THREE.Vector3(0,-1.9,0) });
+  const housingX = X_LEN/2 - 0.35;
+  parts.push({ name:'Bearing Housing', mesh: housing, basePos:new THREE.Vector3(housingX,0,0), explodeOffset:new THREE.Vector3(1.0,0,0) });
+  const bearingX = X_LEN/2 - 0.42;
+  parts.push({ name:'Bearing', mesh: bearing, basePos:new THREE.Vector3(bearingX,0,0), explodeOffset:new THREE.Vector3(1.9,0,0) });
+
+  return parts;
+}
+
+function buildExplodedPartsDiscs(product, materialId, fr){
+  // Disc Return Roller — steel shaft + spaced discs (rubber/PU) OR a continuous helicoidal spiral
+  const parts = [];
+  const mat = MATERIALS[materialId] ?? MATERIALS.pu;
+  const partMat = new THREE.MeshStandardMaterial({ color: mat.color, roughness: mat.steel ? 0.45 : 0.55, metalness: mat.steel ? 0.1 : 0.05 });
+  const steelNote = mat.steel ? 'Steel-Reinforced' : 'Not Steel-Reinforced';
+
+  if(materialId === 'helicoidal'){
+    const curve = new HelixCurve(X_LEN * 0.78, 0.62, 7);
+    const spiral = new THREE.Mesh(new THREE.TubeGeometry(curve, 220, 0.12, 10, false), partMat);
+    spiral.castShadow = true;
+    let label = `Helicoidal ${mat.label} — ${steelNote}${fr ? ', FR' : ''}`;
+    parts.push({ name: label, mesh: spiral, basePos:new THREE.Vector3(0,0,0), explodeOffset:new THREE.Vector3(0,0,2.2) });
+  } else {
+    const N = 11, spanAssembled = 3.6, spanExploded = 6.2;
+    for(let i=0;i<N;i++){
+      const t = i/(N-1) - 0.5; // -0.5..0.5
+      const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.62,0.13,32), partMat);
+      disc.rotation.z = Math.PI/2; disc.castShadow = true;
+      const baseX = t * spanAssembled;
+      const explodeX = t * spanExploded;
+      const label = i === Math.floor(N/2) ? `${mat.label} Discs (×${N}) — ${steelNote}${fr ? ', FR' : ''}` : null;
+      parts.push({
+        name: label,
+        mesh: disc,
+        basePos: new THREE.Vector3(baseX,0,0),
+        explodeOffset: new THREE.Vector3(explodeX - baseX, 0, 0)
+      });
+    }
+  }
+
+  const { shaft, housing, bearing } = genericHousingBearingShaft(product.color);
+  parts.push({ name:'Shaft / Core', mesh: shaft, basePos:new THREE.Vector3(0,0,0), explodeOffset:new THREE.Vector3(0,-1.9,0) });
+  const housingX = X_LEN/2 - 0.35;
+  parts.push({ name:'Bearing Housing', mesh: housing, basePos:new THREE.Vector3(housingX,0,0), explodeOffset:new THREE.Vector3(1.2,0,0) });
+  const bearingX = X_LEN/2 - 0.42;
+  parts.push({ name:'Bearing', mesh: bearing, basePos:new THREE.Vector3(bearingX,0,0), explodeOffset:new THREE.Vector3(2.2,0,0) });
+
+  return parts;
+}
+
+function buildExplodedParts(product, materialId, fr){
+  if(product.geom === 'ribbed') return buildExplodedPartsRibbed(product, materialId, fr);
+  if(product.geom === 'discs') return buildExplodedPartsDiscs(product, materialId, fr);
+  return buildExplodedPartsTube(product);
+}
+
+// ============================================================
+// PLATFORMS
+// ============================================================
+const platformGroup = new THREE.Group();
+scene.add(platformGroup);
+const platforms = []; // {mesh, hit, roller, product, basePos, pedMat}
+const labelsEl = document.getElementById('labels');
+const labelEls = [];
+
+// exploded-view scene group (Mode 3), populated on demand
+const explodeGroup = new THREE.Group();
+explodeGroup.position.set(0, 2.6, 0);
+explodeGroup.visible = false;
+scene.add(explodeGroup);
+const partLabelsEl = document.getElementById('partlabels');
+let explodeParts = []; // current product's parts
+let explodeK = 0, explodeTargetK = 0;
+let mode = 'overview'; // 'overview' | 'exploded'
+
+PRODUCTS.forEach((product, i) => {
+  const pos = layoutPos(i);
+  const holderGrp = new THREE.Group();
+  holderGrp.position.copy(pos);
+  platformGroup.add(holderGrp);
+
+  const pedMat = new THREE.MeshStandardMaterial({ color: 0x1b1f1a, roughness:0.6, metalness:0.3, transparent:true, opacity:1 });
+  const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.3, 0.22, 8), pedMat);
+  pedestal.castShadow = true; pedestal.receiveShadow = true;
+  holderGrp.add(pedestal);
+
+  const rimGlow = new THREE.Mesh(
+    new THREE.TorusGeometry(1.16, 0.02, 8, 8),
+    new THREE.MeshBasicMaterial({ color: product.color, transparent:true, opacity:0.8 })
+  );
+  rimGlow.rotation.x = Math.PI/2; rimGlow.position.y = 0.11;
+  holderGrp.add(rimGlow);
+
+  const roller = buildRollerIcon(product);
+  roller.position.y = 0.55;
+  roller.rotation.y = Math.random()*Math.PI;
+  holderGrp.add(roller);
+
+  const hit = new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,1.6,12), new THREE.MeshBasicMaterial({ visible:false }));
+  hit.position.y = 0.7;
+  hit.userData.index = i;
+  holderGrp.add(hit);
+
+  platforms.push({ holderGrp, pedMat, roller, product, basePos: pos.clone(), hit, spinSpeed: 0.3 + Math.random()*0.25 });
+
+  const div = document.createElement('div');
+  div.className = 'plabel';
+  div.innerHTML = `<div class="pname">${product.name}</div>` +
+    product.stats.map(s => `<div class="pstat">${s}</div>`).join('');
+  labelsEl.appendChild(div);
+  labelEls.push(div);
+});
+
+// connecting glow line through the platforms (decorative "family" spine)
+const spinePts = platforms.map(p => p.basePos.clone().add(new THREE.Vector3(0,0.3,0)));
+const spineCurve = new THREE.CatmullRomCurve3(spinePts, false, 'catmullrom', 0.2);
+const spineGeo = new THREE.TubeGeometry(spineCurve, 200, 0.015, 6, false);
+const spineMat = new THREE.MeshBasicMaterial({ color: 0x8dc63f, transparent:true, opacity:0.35 });
+scene.add(new THREE.Mesh(spineGeo, spineMat));
+
+// ============================================================
+// INTERACTION — raycast, camera focus, slide panel
+// ============================================================
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let selectedIndex = -1;
+let camAnim = null; // { fromPos, toPos, fromTarget, toTarget, t0, dur }
+
+const panel = document.getElementById('panel');
+const ptitle = document.getElementById('ptitle');
+const ptag = document.getElementById('ptag');
+const pspecs = document.getElementById('pspecs');
+const closeBtn = document.getElementById('closePanel');
+
+function startCamAnim(toPos, toTarget){
+  camAnim = {
+    fromPos: camera.position.clone(),
+    toPos: toPos.clone(),
+    fromTarget: controls.target.clone(),
+    toTarget: toTarget.clone(),
+    t0: performance.now(),
+    dur: 900
+  };
+}
+
+const variantControlsEl = document.getElementById('variantControls');
+
+function rebuildPlatformIcon(i){
+  const pl = platforms[i];
+  const oldRotY = pl.roller.rotation.y;
+  pl.holderGrp.remove(pl.roller);
+  disposeObject(pl.roller);
+  const newRoller = buildRollerIcon(pl.product);
+  newRoller.position.y = 0.55;
+  newRoller.rotation.y = oldRotY;
+  pl.holderGrp.add(newRoller);
+  pl.roller = newRoller;
+}
+
+function renderVariantControls(i){
+  const product = platforms[i].product;
+  if(!product.materials){
+    variantControlsEl.innerHTML = '';
+    return;
+  }
+  const activeMat = product.selectedMaterial ?? product.defaultMaterial;
+  const activeFR = product.selectedFR ?? false;
+  variantControlsEl.innerHTML = `
+    <div class="mrlabel">Ring / disc material</div>
+    <div class="mrbtns">
+      ${product.materials.map(mid => `<button class="mrbtn${mid===activeMat?' active':''}" data-mat="${mid}">${MATERIALS[mid].label}</button>`).join('')}
+    </div>
+    <label class="mrfr">
+      <input type="checkbox" id="frCheck" ${activeFR ? 'checked' : ''}/>
+      Flame retardant (FR)
+    </label>
+  `;
+  variantControlsEl.querySelectorAll('.mrbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      product.selectedMaterial = btn.dataset.mat;
+      onVariantChange(i);
+    });
+  });
+  variantControlsEl.querySelector('#frCheck').addEventListener('change', (e) => {
+    product.selectedFR = e.target.checked;
+    onVariantChange(i);
+  });
+}
+
+function onVariantChange(i){
+  const product = platforms[i].product;
+  rebuildPlatformIcon(i);
+  renderVariantControls(i);
+  // if we're currently exploring THIS product, rebuild its exploded parts
+  // live, preserving the current explode factor instead of snapping shut
+  if(mode === 'exploded' && selectedIndex === i){
+    populateExplodeGroup(product, explodeK);
+  }
+}
+
+function selectProduct(i){
+  selectedIndex = i;
+  controls.autoRotate = false;
+  const p = platforms[i];
+  const focusPos = p.basePos.clone().add(new THREE.Vector3(3.6, 2.6, 4.2));
+  const focusTarget = p.basePos.clone().add(new THREE.Vector3(0, 0.7, 0));
+  startCamAnim(focusPos, focusTarget);
+
+  platforms.forEach((pl, idx) => { pl.pedMat.opacity = (idx === i) ? 1 : 0.35; });
+
+  ptitle.textContent = p.product.name;
+  ptag.textContent = p.product.tag;
+  pspecs.innerHTML = p.product.specs.map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+  renderVariantControls(i);
+  panel.classList.add('open');
+}
+
+function deselect(){
+  // Closing the panel should NEVER exit exploded mode — only the dedicated
+  // "Back to platforms" button does that. While exploded, this just hides
+  // the spec panel so the exploded roller gets the full viewport.
+  if(mode === 'exploded'){
+    panel.classList.remove('open');
+    return;
+  }
+  selectedIndex = -1;
+  controls.autoRotate = true;
+  platforms.forEach(pl => { pl.pedMat.opacity = 1; });
+  panel.classList.remove('open');
+  startCamAnim(OVERVIEW_POS, OVERVIEW_TARGET);
+}
+
+closeBtn.addEventListener('click', deselect);
+
+// ============================================================
+// MODE 3 — exploded configurator
+// ============================================================
+const explodeBar = document.getElementById('explodeBar');
+const explodeSlider = document.getElementById('explodeSlider');
+const exploreBtn = document.getElementById('exploreBtn');
+const backBtn = document.getElementById('backBtn');
+const subtitleEl = document.getElementById('subtitle');
+const hintEl = document.getElementById('hint');
+
+const EXPLODE_CAM_POS = new THREE.Vector3(0, 4.6, 9.5);
+const EXPLODE_CAM_TARGET = new THREE.Vector3(0.6, 2.6, 0);
+
+function disposeObject(obj){
+  obj.traverse(o => {
+    if(o.geometry) o.geometry.dispose();
+    if(o.material){
+      if(Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+      else o.material.dispose();
+    }
+  });
+}
+
+function clearExplodeGroup(){
+  while(explodeGroup.children.length){
+    const child = explodeGroup.children[0];
+    explodeGroup.remove(child);
+    disposeObject(child);
+  }
+  partLabelsEl.innerHTML = '';
+}
+
+function populateExplodeGroup(product, presetK){
+  clearExplodeGroup();
+  const matId = product.selectedMaterial ?? product.defaultMaterial;
+  const fr = product.selectedFR ?? false;
+  explodeParts = buildExplodedParts(product, matId, fr);
+  explodeParts.forEach(p => {
+    // seed at the current explode factor (not always basePos) so switching
+    // material mid-explode doesn't snap the assembly shut
+    const seeded = p.basePos.clone().add(p.explodeOffset.clone().multiplyScalar(presetK));
+    p.mesh.position.copy(seeded);
+    explodeGroup.add(p.mesh);
+    if(p.name){
+      const div = document.createElement('div');
+      div.className = 'xlabel';
+      div.innerHTML = `<span class="dot"></span><span class="xname">${p.name}</span>`;
+      partLabelsEl.appendChild(div);
+      p.labelEl = div;
+    }
+  });
+}
+
+function openExploded(i){
+  if(i < 0) return;
+  const product = platforms[i].product;
+  mode = 'exploded';
+
+  explodeK = 0; explodeTargetK = 0;
+  explodeSlider.value = 0;
+  populateExplodeGroup(product, 0);
+
+  platformGroup.visible = false;
+  labelsEl.style.display = 'none';
+  explodeGroup.visible = true;
+  explodeBar.classList.add('open');
+  controls.enableZoom = true;
+  controls.minDistance = 5;
+  controls.maxDistance = 16;
+
+  subtitleEl.textContent = 'Exploded view — ' + product.name;
+  hintEl.textContent = 'Drag the slider to assemble / explode';
+
+  startCamAnim(EXPLODE_CAM_POS, EXPLODE_CAM_TARGET);
+}
+
+function closeExploded(){
+  mode = 'overview';
+  explodeGroup.visible = false;
+  clearExplodeGroup();
+  platformGroup.visible = true;
+  labelsEl.style.display = '';
+  explodeBar.classList.remove('open');
+  controls.enableZoom = false;
+  controls.minDistance = 8;
+  controls.maxDistance = 26;
+  subtitleEl.textContent = 'Roller family — platform view';
+  hintEl.textContent = 'Click a platform to inspect specs';
+
+  // return to the still-selected platform's focused framing
+  if(selectedIndex >= 0){
+    const p = platforms[selectedIndex];
+    startCamAnim(p.basePos.clone().add(new THREE.Vector3(3.6,2.6,4.2)), p.basePos.clone().add(new THREE.Vector3(0,0.7,0)));
+  } else {
+    startCamAnim(OVERVIEW_POS, OVERVIEW_TARGET);
+  }
+}
+
+exploreBtn.addEventListener('click', () => openExploded(selectedIndex));
+backBtn.addEventListener('click', closeExploded);
+document.getElementById('specsBtn').addEventListener('click', () => {
+  panel.classList.toggle('open');
+});
+explodeSlider.addEventListener('input', (e) => { explodeTargetK = e.target.value/100; });
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  if(mode !== 'overview') return;
+  pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(platforms.map(p => p.hit));
+  if(hits.length){
+    selectProduct(hits[0].object.userData.index);
+  }
+});
+
+// ============================================================
+// RESIZE + ANIMATE
+// ============================================================
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+const clock = new THREE.Clock();
+const vpTemp = new THREE.Vector3();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  platforms.forEach(p => { p.roller.rotation.x += dt * p.spinSpeed; });
+
+  if(camAnim){
+    const k = Math.min(1, (performance.now() - camAnim.t0) / camAnim.dur);
+    const ease = 1 - Math.pow(1-k, 3);
+    camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, ease);
+    controls.target.lerpVectors(camAnim.fromTarget, camAnim.toTarget, ease);
+    if(k >= 1) camAnim = null;
+  }
+
+  // project label positions each frame
+  platforms.forEach((p, i) => {
+    const worldPos = p.basePos.clone().add(new THREE.Vector3(0, 1.35, 0));
+    vpTemp.copy(worldPos).project(camera);
+    const behind = vpTemp.z > 1;
+    const x = (vpTemp.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-vpTemp.y * 0.5 + 0.5) * window.innerHeight;
+    const el = labelEls[i];
+    if(behind || (selectedIndex !== -1 && selectedIndex !== i)){
+      el.style.opacity = '0';
+    } else {
+      el.style.opacity = '1';
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+    }
+  });
+
+  if(mode === 'exploded'){
+    explodeK += (explodeTargetK - explodeK) * 0.12;
+    const tmp = new THREE.Vector3();
+    const wp = new THREE.Vector3();
+    explodeParts.forEach(p => {
+      tmp.copy(p.explodeOffset).multiplyScalar(explodeK).add(p.basePos);
+      p.mesh.position.copy(tmp);
+      if(p.labelEl){
+        wp.copy(tmp).add(explodeGroup.position);
+        vpTemp.copy(wp).project(camera);
+        const behind = vpTemp.z > 1;
+        const x = (vpTemp.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-vpTemp.y * 0.5 + 0.5) * window.innerHeight;
+        if(behind || explodeK < 0.12){
+          p.labelEl.style.opacity = '0';
+        } else {
+          p.labelEl.style.opacity = '1';
+          p.labelEl.style.left = x + 'px';
+          p.labelEl.style.top = y + 'px';
+        }
+      }
+    });
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
