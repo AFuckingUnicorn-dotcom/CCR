@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Composite vs Steel Roller — Switch Calculator | Composite Roller Co.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EFEDE4;
+    --paper-line: #DDD9CC;
+    --ink: #16232E;
+    --ink-soft: #47576A;
+    --steel: #45607A;
+    --steel-light: #C3CFD8;
+    --panel: #F8F7F2;
+    --accent: #D6501F;
+    --accent-dark: #B03F17;
+    --yellow: #EFB000;
+    --line: #1B2A38;
+    --radius: 2px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, var(--paper-line) 39px, var(--paper-line) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, var(--paper-line) 39px, var(--paper-line) 40px),
+      var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  /* ---------- Header ---------- */
+  header { margin-bottom: 36px; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    color: var(--accent-dark);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 2px;
+    background: var(--accent);
+    display: inline-block;
+  }
+  h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: clamp(32px, 5vw, 52px);
+    letter-spacing: 0.01em;
+    margin: 0 0 10px;
+    line-height: 1.02;
+    color: var(--ink);
+  }
+  header p.sub {
+    font-size: 16px;
+    color: var(--ink-soft);
+    max-width: 560px;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* ---------- Layout ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .plate {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    position: relative;
+    padding: 28px 26px 26px;
+  }
+  .plate::before, .plate::after,
+  .plate .rivet-tr, .plate .rivet-bl {
+    content: "";
+    position: absolute;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--steel);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .plate::before { top: 10px; left: 10px; }
+  .plate::after { top: 10px; right: 10px; }
+  .plate .rivet-bl { bottom: 10px; left: 10px; }
+  .plate .rivet-br { bottom: 10px; right: 10px; position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--steel); box-shadow: inset 0 1px 1px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.4); }
+
+  .panel-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--paper-line);
+  }
+
+  /* ---------- Form ---------- */
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .field .hint {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+  .field input[type="number"] {
+    width: 100%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    padding: 10px 12px;
+    border: 1px solid var(--steel-light);
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--ink);
+  }
+  .field input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(214, 80, 31, 0.15);
+  }
+
+  .toggle-row {
+    display: flex;
+    gap: 8px;
+  }
+  .toggle-btn {
+    flex: 1;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 8px;
+    border: 1px solid var(--steel-light);
+    background: #fff;
+    color: var(--ink-soft);
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: center;
+  }
+  .toggle-btn.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+
+  .optional-divider {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 24px 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .optional-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--paper-line);
+  }
+
+  /* ---------- Results ---------- */
+  .readout {
+    margin-bottom: 22px;
+  }
+  .readout-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .readout-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 34px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .readout-value .unit {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    margin-left: 6px;
+  }
+  .readout-value .accent { color: var(--accent-dark); }
+
+  .bars { margin: 6px 0 4px; }
+  .bar-row { margin-bottom: 10px; }
+  .bar-row .bar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .bar-track {
+    height: 20px;
+    background: #E4E1D5;
+    border-radius: var(--radius);
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--paper-line);
+  }
+  .bar-fill {
+    height: 100%;
+    transition: width 0.35s ease;
+  }
+  .bar-fill.steel { background: var(--steel); }
+  .bar-fill.composite { background: var(--accent); }
+  .bar-fill.ghost {
+    background: repeating-linear-gradient(45deg, #C3CFD8, #C3CFD8 6px, #D8DEE3 6px, #D8DEE3 12px);
+  }
+
+  .badge-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 22px;
+  }
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 12px;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: var(--radius);
+  }
+  .badge strong { color: var(--yellow); }
+
+  .energy-block {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--paper-line);
+  }
+  .energy-block .empty-note {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  /* ---------- Footer / CTA ---------- */
+  .cta-row {
+    margin-top: 26px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .cta-btn {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 13px 22px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    display: inline-block;
+    text-decoration: none;
+    text-align: center;
+  }
+  .cta-btn:hover { background: var(--accent-dark); }
+  .cta-btn-secondary {
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+  }
+  .cta-btn-secondary:hover { background: var(--ink); color: #fff; }
+  .cta-sub {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  .print-only { display: none; }
+
+  @media print {
+    body { padding: 0; background: #fff; }
+    .wrap > header, .grid, .disclaimer, .eyebrow { display: none !important; }
+    .print-only { display: block; }
+    .print-header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      border-bottom: 2px solid #16232E; padding-bottom: 10px; margin-bottom: 18px;
+    }
+    .print-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #D6501F; }
+    .print-date { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #47576A; }
+    .print-title { font-family: 'Oswald', sans-serif; text-transform: uppercase; font-size: 26px; margin: 0 0 20px; color: #16232E; }
+    .print-section-title { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #47576A; margin: 22px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+    .print-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .print-table td { padding: 7px 4px; border-bottom: 1px solid #eee; }
+    .print-table td:first-child { color: #47576A; width: 55%; }
+    .print-table td:last-child { font-family: 'JetBrains Mono', monospace; font-weight: 600; text-align: right; color: #16232E; }
+    .print-disclaimer { margin-top: 30px; font-size: 10.5px; color: #47576A; line-height: 1.6; border-top: 1px solid #ddd; padding-top: 12px; }
+  }
+
+  .disclaimer {
+    margin-top: 34px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 760px;
+    border-top: 1px solid var(--paper-line);
+    padding-top: 16px;
+  }.nav-bar {
+    max-width: 1080px;
+    margin: 0 auto 24px;
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .nav-bar a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 6px 0;
+    border-bottom: 2px solid transparent;
+  }
+  .nav-bar a:hover { color: var(--ink); }
+  .nav-bar a.current { color: var(--accent-dark); border-bottom-color: var(--accent); font-weight: 700; }
+  .nav-bar .sep { color: var(--paper-line); }
+</style>
+</head>
+<body>
+<div class="nav-bar">
+  <a href="/">Home</a>
+  <span class="sep">/</span>
+  <a href="/roller-family/">&larr; Roller Family</a>
+  <span class="sep">/</span>
+  <a href="#" class="current">ROI Calculator</a>
+  <span class="sep">/</span>
+  <a href="/comparison-guide/">Comparison Guide</a>
+</div>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Composite Roller Co. — Field Data Tool</div>
+    <h1>Steel → Composite<br>Switch Calculator</h1>
+    <p class="sub">Enter your current roller setup below. The estimate updates as you type, using performance data from our field installs at BHP, Dampier Salt, Nutrien, and other active sites.</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- INPUT PANEL -->
+    <div class="plate">
+      <span class="rivet-br"></span>
+      <div class="panel-label">01 — Your Current Setup</div>
+
+      <div class="field">
+        <label>Calculation scope</label>
+        <div class="toggle-row">
+          <button type="button" class="toggle-btn active" data-scope="frame">Single Frame / Replaced Set</button>
+          <button type="button" class="toggle-btn" data-scope="flight">Entire Flight / Line Replacement</button>
+        </div>
+        <div class="hint" id="scopeHint">Estimate for the roller set you're replacing right now.</div>
+      </div>
+
+      <div class="field" id="flightSetsField" style="display:none;">
+        <label for="flightSets">Number of idler sets in the flight / line</label>
+        <input type="number" id="flightSets" value="2000" min="1">
+        <div class="hint">E.g. a ~2 km conveyor flight is typically 2,000+ idler sets. Multiplies every result below across the full line.</div>
+      </div>
+
+      <div class="field">
+        <label for="rollerCount">Number of rollers being replaced<span id="perSetLabel"></span></label>
+        <input type="number" id="rollerCount" value="150" min="1">
+      </div>
+
+      <div class="field">
+        <label>Duty class (sets wall thickness spec)</label>
+        <div class="toggle-row">
+          <button type="button" class="toggle-btn active" data-duty="light">Light duty — 6205–6307 bearings</button>
+          <button type="button" class="toggle-btn" data-duty="heavy">Heavy duty — 6308+ bearings</button>
+        </div>
+        <div class="hint" id="dutyHint">Composite: 15mm wall (face length ≤ 994mm). Steel: ~3.5mm wall.</div>
+      </div>
+
+      <div class="field">
+        <label for="diaSelectV">Roller diameter</label>
+        <select id="diaSelectV" style="width:100%; font-family:'JetBrains Mono',monospace; font-size:13px; padding:9px; border:1px solid var(--steel-light); border-radius:2px; background:#fff;">
+          <option value="">Select diameter...</option>
+        </select>
+        <div class="hint" id="diaNote">Engineer-verified tube weights (kg/m) — Composite Roller Co. internal data, not a third-party estimate.</div>
+      </div>
+
+      <div class="field">
+        <label for="faceLength">Tube / face length (mm)</label>
+        <input type="number" id="faceLength" value="600" min="1">
+        <div class="hint">Length of the roller shell itself (not belt width) — typically belt width minus 150–450mm depending on CEMA class. Check your roller spec for the exact figure.</div>
+      </div>
+
+      <div class="field">
+        <label for="steelWeight">Steel roller weight (kg, per roller)<span id="steelAutoTag" style="color:var(--ink-soft); font-weight:400;"></span></label>
+        <input type="number" id="steelWeight" value="0" min="0" step="0.01">
+        <div class="hint">Auto-computed: verified steel tube weight (kg/m) × face length. Edit directly if you have your own spec.</div>
+      </div>
+
+      <div class="field">
+        <label for="compWeight">Composite roller weight (kg, per roller)<span id="compAutoTag" style="color:var(--ink-soft); font-weight:400;"></span></label>
+        <input type="number" id="compWeight" value="0" min="0" step="0.01">
+        <div class="hint">Auto-computed: verified composite tube weight (kg/m) × face length. Edit directly if you have your own spec.</div>
+      </div>
+
+      <div class="field">
+        <label for="steelPrice">Steel market value ($ USD per kg)</label>
+        <input type="number" id="steelPrice" value="0.42" min="0" step="0.01">
+        <div class="hint">Defaults to a recent scrap steel benchmark (~$0.42/kg, i.e. ~$420/metric ton, Trading Economics, early Apr 2026). Steel prices vary by region and grade and move often — edit to match your local market or your own steel supplier's quote.</div>
+      </div>
+
+      <div class="optional-divider">Energy savings basis</div>
+
+      <div class="field">
+        <div class="toggle-row">
+          <button type="button" class="toggle-btn active" data-energy="8">Conservative (8% min.)</button>
+          <button type="button" class="toggle-btn" data-energy="19">Spec sheet (12–26%)</button>
+        </div>
+        <div class="hint" id="energyHint">8% minimum running-friction reduction, as published on compositeroller.com.</div>
+      </div>
+
+      <div class="optional-divider">Optional — energy inputs</div>
+
+      <div class="field">
+        <label for="motorKw">Conveyor drive motor power (kW)</label>
+        <input type="number" id="motorKw" placeholder="e.g. 75" min="0" step="0.1">
+      </div>
+
+      <div class="field">
+        <label for="hoursDay">Operating hours per day</label>
+        <input type="number" id="hoursDay" placeholder="e.g. 20" min="0" max="24" step="0.5">
+      </div>
+
+      <div class="field">
+        <label for="costKwh">Electricity cost ($ per kWh)</label>
+        <input type="number" id="costKwh" placeholder="e.g. 0.15" min="0" step="0.01">
+      </div>
+    </div>
+
+    <!-- RESULTS PANEL -->
+    <div class="plate">
+      <span class="rivet-br"></span>
+      <div class="panel-label">02 — Estimated Result</div>
+
+      <div class="readout">
+        <div class="readout-label">Total weight removed <span id="scopeLabel1"></span></div>
+        <div class="readout-value">
+          <span class="accent" id="weightRemovedKg">0</span><span class="unit">kg</span>
+          &nbsp;/&nbsp;
+          <span class="accent" id="weightRemovedLb">0</span><span class="unit">lb</span>
+        </div>
+      </div>
+
+      <div class="readout" id="flightHeadline" style="display:none;">
+        <div class="readout-label">Structural weight removed across the full flight</div>
+        <div class="readout-value">
+          <span class="accent" id="weightRemovedTons">0</span><span class="unit">metric tons</span>
+        </div>
+        <div class="readout-label" style="margin-top:10px;">Steel market value — full flight</div>
+        <div class="readout-value">
+          <span class="accent">$</span><span class="accent" id="steelValueFlight">0</span>
+        </div>
+      </div>
+
+      <div class="bars">
+        <div class="bar-row">
+          <div class="bar-label"><span>Steel (current)<span id="scopeLabel2"></span></span><span id="steelTotalLabel">0 kg</span></div>
+          <div class="bar-track"><div class="bar-fill steel" id="barSteel" style="width:100%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span>Composite (est.)<span id="scopeLabel3"></span></span><span id="compTotalLabel">0 kg</span></div>
+          <div class="bar-track">
+            <div class="bar-fill composite" id="barComposite" style="width:50%"></div><div class="bar-fill ghost" id="barGhost" style="width:50%; display:inline-block; vertical-align:top; margin-left:-4px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="badge-row">
+        <div class="badge">Noise: <strong>≥70%</strong> quieter (min.)</div>
+        <div class="badge" id="frictionBadge">Startup friction: <strong>≥8%</strong> lower</div>
+      </div>
+
+      <div class="energy-block" id="energyBlock">
+        <p class="empty-note">Add motor power and operating hours above to estimate annual energy savings from reduced running friction.</p>
+      </div>
+
+      <div class="cta-row" style="margin-top:8px; margin-bottom:8px; border-top:1px solid var(--paper-line); padding-top:16px;">
+        <span class="cta-sub">Want the fuller picture beyond the numbers? See our <a href="/comparison-guide/" style="color: var(--accent-dark); font-weight:600;">10-point comparison guide</a> — weight, noise, corrosion, fire rating, and more.</span>
+      </div>
+
+      <div class="cta-row">
+        <a class="cta-btn" href="https://compositeroller.com/#contact" target="_blank" rel="noopener">Contact us to get quoted on your specific needs</a>
+        <button class="cta-btn cta-btn-secondary" id="pdfBtn">Download PDF summary</button>
+      </div>
+      <div class="cta-row" style="margin-top:8px;">
+        <span class="cta-sub">No obligation — our engineers verify every estimate. Prefer email? Reach our sales team directly at <a href="mailto:INTERNALSALES@COMPOSITEROLLER.COM" style="color: var(--accent-dark); font-weight:600;">INTERNALSALES@COMPOSITEROLLER.COM</a></span>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="disclaimer">
+    Steel and composite tube weights (kg/m) are Composite Roller Co.'s own engineer-verified figures, matched by diameter and duty class (light duty: composite 15mm wall / steel ~3.5mm wall, bearings 6205–6307; heavy duty: composite 20mm+ wall / steel 6mm wall, bearings 6308+). These cover the tube/shell only — actual assembled roller weight also includes bearing housing, bearing, seal, and shaft, which this estimate does not add. Where a diameter's data has a caveat (e.g. a non-standard wall thickness on file), it's noted next to that selection. Steel market value defaults to a recent scrap steel commodity benchmark (~$0.42/kg, i.e. ~$420/metric ton, Trading Economics, early April 2026) and is fully editable — it's an illustrative reference for the value of the weight removed, not a resale, trade-in, or product cost figure, and commodity prices move frequently and vary by region and grade. Noise reduction (≥70%) and power/friction reduction (8% minimum per compositeroller.com, or 12–26% per CCR spec sheet, model-dependent) are separate published figures, not derived from the tube weight data. Actual results vary by belt speed, load, environment, and roller specification. This calculator provides a directional estimate only — contact our engineers for a formal assessment specific to your site.
+  </p>
+
+  <!-- PRINT-ONLY PDF SUMMARY (populated by JS, hidden on screen, shown only when printing) -->
+  <div id="printSummary" class="print-only">
+    <div class="print-header">
+      <div class="print-eyebrow">Composite Roller Co. — Site Assessment Estimate</div>
+      <div class="print-date" id="printDate"></div>
+    </div>
+    <h1 class="print-title">Steel → Composite Switch: ROI Summary</h1>
+
+    <table class="print-table">
+      <tr><td>Scope</td><td id="pScope"></td></tr>
+      <tr><td>Duty class / diameter</td><td id="pApplication"></td></tr>
+      <tr><td>Face length</td><td id="pFaceLength"></td></tr>
+      <tr><td>Rollers evaluated</td><td id="pRollerCount"></td></tr>
+      <tr><td>Steel weight per roller</td><td id="pSteelWeight"></td></tr>
+      <tr><td>Composite weight per roller</td><td id="pCompWeight"></td></tr>
+    </table>
+
+    <div class="print-section-title">Weight Savings</div>
+    <table class="print-table">
+      <tr><td>Current steel weight (total)</td><td id="pSteelTotal"></td></tr>
+      <tr><td>Estimated composite weight (total)</td><td id="pCompTotal"></td></tr>
+      <tr><td>Weight removed</td><td id="pWeightRemoved"></td></tr>
+      <tr><td>Steel market value of weight removed</td><td id="pSteelValue"></td></tr>
+      <tr id="pFlightRow" style="display:none;"><td><strong>Structural weight removed — full flight</strong></td><td id="pFlightTotal"><strong></strong></td></tr>
+      <tr id="pFlightValueRow" style="display:none;"><td><strong>Steel market value — full flight</strong></td><td id="pFlightValueTotal"><strong></strong></td></tr>
+    </table>
+
+    <div class="print-section-title">Additional Performance</div>
+    <table class="print-table">
+      <tr><td>Noise reduction</td><td>≥70% quieter (minimum, per published field data)</td></tr>
+      <tr><td>Friction / power basis used</td><td id="pFrictionBasis"></td></tr>
+      <tr id="pEnergyRow" style="display:none;"><td>Estimated annual energy saved</td><td id="pEnergyValue"></td></tr>
+      <tr id="pCostRow" style="display:none;"><td>Estimated annual cost savings</td><td id="pCostValue"></td></tr>
+    </table>
+
+    <p class="print-disclaimer">
+      Steel and composite tube weights (kg/m) are Composite Roller Co.'s own engineer-verified figures, matched by diameter and duty class. These cover the tube/shell only — actual assembled roller weight also includes bearing housing, bearing, seal, and shaft. Steel market value is an illustrative commodity-price reference (editable, defaults to a recent scrap steel benchmark) — not a resale, trade-in, or product cost figure. Actual results vary by site conditions. Contact Composite Roller Co. for a formal engineering assessment.
+      <br><br>compositeroller.com &nbsp;•&nbsp; Sales: INTERNALSALES@COMPOSITEROLLER.COM &nbsp;•&nbsp; Generated by the Composite Roller Co. Switch Calculator
+    </p>
+  </div>
+
+</div>
+
+<script>
+  // Engineer-verified tube linear weights (kg per meter of tube), Composite Roller Co. internal data.
+  // Sourced from CCR's internal costing spreadsheet (TUBE PRICING AND WEIGHTS tab) — pricing/margin/
+  // customer data deliberately excluded, only material weights carried over.
+  //
+  // "light" duty = composite 15mm wall (face length ≤ 994mm) / steel ~3.5mm wall (bearings 6205–6307)
+  // "heavy" duty = composite 20mm+ wall (face length > 994mm) / steel 6mm wall (bearings 6308+)
+  //
+  // Only diameters where BOTH a steel and composite figure exist at the matching wall class are
+  // included — gaps in the source data were left out rather than approximated.
+  //
+  // Composite figures use the source file's "Skimmed Weight" (finished, post-machining)
+  // rather than raw pre-machining weight, where the two differ — skimmed is what actually
+  // ships. Steel figures had no raw/skimmed difference on file.
+  const tubeWeightData = {
+    light: {
+      90:  { composite: 4.85, steel: 7.37 },
+      102: { composite: 5.2,  steel: 8.47 },
+      114: { composite: 5.8,  steel: 9.564 },
+      127: { composite: 5.78, steel: 11.546 },
+      152: { composite: 7.29, steel: 14.639 },
+      165: { composite: 9.5,  steel: 11.98, note: 'Steel figure on file uses a 3mm wall, not the standard ~3.5mm class — treat as indicative.' }
+    },
+    heavy: {
+      127: { composite: 7.45, steel: 17.91 },
+      152: { composite: 9.18, steel: 21.66 },
+      178: { composite: 10.93, steel: 25.421 },
+      194: { composite: 14.84, steel: 27.77, note: 'Composite figure on file uses a 23mm wall — this diameter has no 20mm-wall spec on record.' },
+      220: { composite: 16.5, steel: 31.53 }
+    }
+  };
+
+  const rollerCount = document.getElementById('rollerCount');
+  const steelWeight = document.getElementById('steelWeight');
+  const compWeight = document.getElementById('compWeight');
+  const faceLength = document.getElementById('faceLength');
+  const motorKw = document.getElementById('motorKw');
+  const hoursDay = document.getElementById('hoursDay');
+  const costKwh = document.getElementById('costKwh');
+  const flightSets = document.getElementById('flightSets');
+  const dutyBtns = document.querySelectorAll('[data-duty]');
+  const energyBtns = document.querySelectorAll('[data-energy]');
+  const scopeBtns = document.querySelectorAll('[data-scope]');
+  const dutyHint = document.getElementById('dutyHint');
+  const diaNote = document.getElementById('diaNote');
+  const energyHint = document.getElementById('energyHint');
+  const scopeHint = document.getElementById('scopeHint');
+  const diaSelectV = document.getElementById('diaSelectV');
+  const steelAutoTag = document.getElementById('steelAutoTag');
+  const compAutoTag = document.getElementById('compAutoTag');
+  const flightSetsField = document.getElementById('flightSetsField');
+  const flightHeadline = document.getElementById('flightHeadline');
+  const perSetLabel = document.getElementById('perSetLabel');
+  const scopeLabel1 = document.getElementById('scopeLabel1');
+  const scopeLabel2 = document.getElementById('scopeLabel2');
+  const scopeLabel3 = document.getElementById('scopeLabel3');
+  const steelPrice = document.getElementById('steelPrice');
+
+  let duty = 'light';
+  let energyPct = 8;
+  let scope = 'frame';
+
+  function populateDiameters(){
+    diaSelectV.innerHTML = '<option value="">Select diameter...</option>';
+    Object.keys(tubeWeightData[duty]).forEach(dia => {
+      const opt = document.createElement('option');
+      opt.value = dia; opt.textContent = dia + ' mm';
+      diaSelectV.appendChild(opt);
+    });
+  }
+  populateDiameters();
+  // Pre-select a common diameter so the calculator shows a real, live example
+  // on first load instead of all zeros before the visitor touches anything.
+  diaSelectV.value = '127';
+
+  function applyDiameterSelection(){
+    const entry = tubeWeightData[duty][diaSelectV.value];
+    if (!entry) { diaNote.textContent = 'Engineer-verified tube weights (kg/m) — Composite Roller Co. internal data, not a third-party estimate.'; return; }
+    const length = parseFloat(faceLength.value) || 0;
+    steelWeight.value = (entry.steel * (length / 1000)).toFixed(2);
+    compWeight.value = (entry.composite * (length / 1000)).toFixed(2);
+    steelAutoTag.textContent = ' (auto)';
+    compAutoTag.textContent = ' (auto)';
+    diaNote.textContent = entry.note
+      ? '⚠ ' + entry.note
+      : `Verified: steel ${entry.steel} kg/m, composite ${entry.composite} kg/m at ${diaSelectV.value}mm diameter.`;
+    calculate();
+  }
+
+  dutyBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      dutyBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      duty = btn.dataset.duty;
+      dutyHint.textContent = duty === 'heavy'
+        ? 'Composite: 20mm+ wall (face length > 994mm). Steel: 6mm wall.'
+        : 'Composite: 15mm wall (face length ≤ 994mm). Steel: ~3.5mm wall.';
+      populateDiameters();
+      steelAutoTag.textContent = '';
+      compAutoTag.textContent = '';
+    });
+  });
+
+  diaSelectV.addEventListener('change', applyDiameterSelection);
+  faceLength.addEventListener('input', () => {
+    if (diaSelectV.value) applyDiameterSelection();
+  });
+
+  // Manually editing steel/composite weight directly (rather than via the
+  // lookup) means the figure is no longer strictly the "auto" verified one —
+  // drop the tag so it's clear this is now a user-entered value.
+  steelWeight.addEventListener('input', () => { steelAutoTag.textContent = ''; });
+  compWeight.addEventListener('input', () => { compAutoTag.textContent = ''; });
+
+  scopeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      scopeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      scope = btn.dataset.scope;
+      const isFlight = scope === 'flight';
+      flightSetsField.style.display = isFlight ? 'block' : 'none';
+      flightHeadline.style.display = isFlight ? 'block' : 'none';
+      perSetLabel.textContent = isFlight ? ' (per idler set)' : '';
+      [scopeLabel1, scopeLabel2, scopeLabel3].forEach(el => el.textContent = isFlight ? ' (per set)' : '');
+      scopeHint.textContent = isFlight
+        ? 'Multiplies your per-set numbers below across the entire flight — useful for executive-level totals.'
+        : 'Estimate for the roller set you\'re replacing right now.';
+      calculate();
+    });
+  });
+
+  energyBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      energyBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      energyPct = parseFloat(btn.dataset.energy);
+      energyHint.textContent = energyPct === 8
+        ? '8% minimum running-friction reduction, as published on compositeroller.com.'
+        : '12–26% power consumption reduction per CCR spec sheet (model-dependent); using midpoint estimate.';
+      document.getElementById('frictionBadge').innerHTML = energyPct === 8
+        ? 'Startup friction: <strong>≥8%</strong> lower'
+        : 'Power consumption: <strong>12–26%</strong> lower';
+      calculate();
+    });
+  });
+
+  function fmt(n, decimals = 0) {
+    if (!isFinite(n)) return '0';
+    return n.toLocaleString(undefined, { maximumFractionDigits: decimals, minimumFractionDigits: decimals });
+  }
+
+  let lastCalc = {};
+
+  function calculate() {
+    const count = parseFloat(rollerCount.value) || 0;
+    const steelW = parseFloat(steelWeight.value) || 0;
+    const compW = parseFloat(compWeight.value) || 0;
+    const sets = scope === 'flight' ? (parseFloat(flightSets.value) || 1) : 1;
+
+    const totalSteel = count * steelW;      // per-set (or single frame) basis
+    const compositeTotal = count * compW;
+    const removed = totalSteel - compositeTotal;
+    // Derived directly from the verified steel/composite weights above —
+    // no longer a fixed 50%/60% assumption tied to a Troughing/Return toggle.
+    const savingsPct = totalSteel > 0 ? (removed / totalSteel) * 100 : 0;
+
+    const totalSteelFlight = totalSteel * sets;
+    const removedFlight = removed * sets;
+    const compositeTotalFlight = compositeTotal * sets;
+
+    document.getElementById('weightRemovedKg').textContent = fmt(removed, 1);
+    document.getElementById('weightRemovedLb').textContent = fmt(removed * 2.20462, 0);
+    document.getElementById('steelTotalLabel').textContent = fmt(totalSteel, 0) + ' kg';
+    document.getElementById('compTotalLabel').textContent = fmt(compositeTotal, 0) + ' kg (' + fmt(savingsPct, 1) + '% lighter)';
+
+    const price = parseFloat(steelPrice.value) || 0;
+    const steelValue = removed * price;
+    const steelValueFlight = removedFlight * price;
+
+    if (scope === 'flight') {
+      document.getElementById('weightRemovedTons').textContent = fmt(removedFlight / 1000, 1);
+      document.getElementById('steelValueFlight').textContent = fmt(steelValueFlight, 0);
+    }
+
+    const compPct = totalSteel > 0 ? (compositeTotal / totalSteel) * 100 : 100;
+    document.getElementById('barComposite').style.width = Math.max(compPct, 2) + '%';
+    document.getElementById('barGhost').style.width = Math.max(100 - compPct, 0) + '%';
+
+    // Energy calc
+    const kw = parseFloat(motorKw.value);
+    const hrs = parseFloat(hoursDay.value);
+    const cost = parseFloat(costKwh.value);
+    const energyBlock = document.getElementById('energyBlock');
+
+    let annualKwhSaved = null, annualCost = null;
+
+    if (kw > 0 && hrs > 0) {
+      const dailyKwhSaved = kw * hrs * (energyPct / 100) * sets;
+      annualKwhSaved = dailyKwhSaved * 365;
+      let costLine = '';
+      if (cost > 0) {
+        annualCost = annualKwhSaved * cost;
+        costLine = `<div class="readout" style="margin-top:14px;">
+          <div class="readout-label">Estimated annual cost savings${scope === 'flight' ? ' — full flight' : ''}</div>
+          <div class="readout-value"><span class="accent">$${fmt(annualCost, 0)}</span><span class="unit">/ year</span></div>
+        </div>`;
+      }
+      energyBlock.innerHTML = `
+        <div class="readout-label">Estimated annual energy saved${scope === 'flight' ? ' — full flight' : ''}</div>
+        <div class="readout-value">${fmt(annualKwhSaved, 0)}<span class="unit">kWh / year</span></div>
+        <div class="hint">Based on a ${energyPct}% reduction in running friction / power draw, applied to your drive motor load and operating hours${scope === 'flight' ? ', multiplied across ' + fmt(sets, 0) + ' sets' : ''}.</div>
+        ${costLine}
+      `;
+    } else {
+      energyBlock.innerHTML = `<p class="empty-note">Add motor power and operating hours above to estimate annual energy savings from reduced running friction.</p>`;
+    }
+
+    lastCalc = {
+      count, steelW, compW, sets, savingsPct, totalSteel, removed, compositeTotal,
+      totalSteelFlight, removedFlight, compositeTotalFlight, annualKwhSaved, annualCost,
+      price, steelValue, steelValueFlight
+    };
+  }
+
+  // ---- PDF summary export ----
+  document.getElementById('pdfBtn').addEventListener('click', () => {
+    const c = lastCalc;
+    document.getElementById('printDate').textContent = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('pScope').textContent = scope === 'flight' ? 'Entire flight / line replacement' : 'Single frame / replaced set';
+    document.getElementById('pApplication').textContent = diaSelectV.value
+      ? (duty === 'heavy' ? 'Heavy duty (6308+ bearing)' : 'Light duty (6205–6307 bearing)') + ', ' + diaSelectV.value + 'mm diameter'
+      : (duty === 'heavy' ? 'Heavy duty (6308+ bearing)' : 'Light duty (6205–6307 bearing)') + ' — manual weights entered';
+    document.getElementById('pRollerCount').textContent = fmt(c.count, 0) + (scope === 'flight' ? ' per set × ' + fmt(c.sets, 0) + ' sets' : '');
+    document.getElementById('pSteelWeight').textContent = fmt(c.steelW, 1) + ' kg';
+    document.getElementById('pCompWeight').textContent = fmt(c.compW, 1) + ' kg';
+    document.getElementById('pSteelTotal').textContent = fmt(scope === 'flight' ? c.totalSteelFlight : c.totalSteel, 0) + ' kg';
+    document.getElementById('pCompTotal').textContent = fmt(scope === 'flight' ? c.compositeTotalFlight : c.compositeTotal, 0) + ' kg';
+    document.getElementById('pWeightRemoved').textContent = fmt(scope === 'flight' ? c.removedFlight : c.removed, 0) + ' kg (' + fmt(c.savingsPct, 1) + '% lighter)';
+    document.getElementById('pSteelValue').textContent = '$' + fmt(scope === 'flight' ? c.steelValueFlight : c.steelValue, 0) + ' (at $' + fmt(c.price, 2) + '/kg)';
+
+    const flightRow = document.getElementById('pFlightRow');
+    const flightValueRow = document.getElementById('pFlightValueRow');
+    if (scope === 'flight') {
+      flightRow.style.display = 'table-row';
+      flightValueRow.style.display = 'table-row';
+      document.getElementById('pFlightTotal').innerHTML = '<strong>' + fmt(c.removedFlight / 1000, 1) + ' metric tons</strong>';
+      document.getElementById('pFlightValueTotal').innerHTML = '<strong>$' + fmt(c.steelValueFlight, 0) + '</strong>';
+    } else {
+      flightRow.style.display = 'none';
+      flightValueRow.style.display = 'none';
+    }
+
+    document.getElementById('pFrictionBasis').textContent = energyPct === 8
+      ? '≥8% minimum (compositeroller.com)'
+      : '12–26% (CCR spec sheet, model-dependent, midpoint used)';
+
+    const energyRow = document.getElementById('pEnergyRow');
+    const costRow = document.getElementById('pCostRow');
+    if (c.annualKwhSaved != null) {
+      energyRow.style.display = 'table-row';
+      document.getElementById('pEnergyValue').textContent = fmt(c.annualKwhSaved, 0) + ' kWh / year';
+    } else {
+      energyRow.style.display = 'none';
+    }
+    if (c.annualCost != null) {
+      costRow.style.display = 'table-row';
+      document.getElementById('pCostValue').textContent = '$' + fmt(c.annualCost, 0) + ' / year';
+    } else {
+      costRow.style.display = 'none';
+    }
+
+    window.print();
+  });
+
+  [rollerCount, steelWeight, compWeight, steelPrice, motorKw, hoursDay, costKwh, flightSets].forEach(el => {
+    el.addEventListener('input', calculate);
+  });
+
+  // Populate steel/composite weights for the pre-selected diameter above
+  // (this also calls calculate() internally) instead of leaving the page
+  // at all-zeros until the visitor touches the diameter dropdown.
+  applyDiameterSelection();
+</script>
+
+</body>
+</html>
