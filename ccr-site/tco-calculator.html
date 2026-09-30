@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>CCR — Steel → Composite TCO & Payback Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0b0d0c;--green:#8dc63f;--paper:#eef0e8;--amber:#e8b04a;--line:rgba(238,240,232,.12);--dim:rgba(238,240,232,.6)}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(120% 120% at 50% 0%,#16211a 0%,var(--ink) 60%,#050605 100%) fixed;color:var(--paper);font-family:'Space Mono',monospace;font-size:13px;line-height:1.55;min-height:100vh}
+a{color:var(--green)}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 24px 60px}
+.wordmark{font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+.wordmark span{color:var(--green)}
+nav{display:flex;gap:8px;margin:10px 0 26px;flex-wrap:wrap}
+nav a{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;color:var(--dim);border:1px solid var(--line);padding:6px 12px;border-radius:2px}
+nav a:hover{color:var(--green);border-color:var(--green)}
+h1{font-family:'Archivo Black',sans-serif;font-size:26px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.02em}
+.lead{color:var(--dim);max-width:720px;margin:0 0 24px}
+.grid{display:grid;grid-template-columns:400px 1fr;gap:26px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:rgba(14,16,14,.9);border:1px solid rgba(141,198,63,.22);border-radius:4px;padding:22px}
+.card h2{font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--green);margin:0 0 14px}
+.modes{display:flex;gap:6px;margin-bottom:18px}
+.modes button{flex:1;font:inherit;font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:9px;background:rgba(238,240,232,.05);border:1px solid var(--line);color:var(--dim);cursor:pointer;border-radius:2px}
+.modes button.on{background:rgba(141,198,63,.16);border-color:var(--green);color:var(--green)}
+.f{margin-bottom:12px}
+.f label{display:block;font-size:10.5px;letter-spacing:.04em;color:rgba(141,198,63,.9);margin-bottom:4px}
+.f input,.f select{width:100%;font:inherit;font-size:13px;color:var(--paper);background:rgba(238,240,232,.06);border:1px solid var(--line);border-radius:2px;padding:9px 10px}
+.f input:focus,.f select:focus{outline:none;border-color:var(--green)}
+.f select option{background:#111}
+.f .n{font-size:10px;color:var(--dim);margin-top:3px}
+.sec{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:20px 0 10px;padding-top:14px;border-top:1px solid var(--line)}
+.full-only{display:none}
+body.full .full-only{display:block}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:6px}
+.stat{border:1px solid var(--line);border-radius:3px;padding:12px}
+.stat b{display:block;font-family:'Archivo Black',sans-serif;font-size:20px;color:var(--paper);font-weight:400;margin-bottom:2px}
+.stat.hl{border-color:rgba(141,198,63,.5);background:rgba(141,198,63,.08)}
+.stat.hl b{color:var(--green)}
+.stat small{color:var(--dim);font-size:10.5px}
+.bars{margin:12px 0 4px}
+.bar{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:11px}
+.bar span:first-child{width:78px;color:var(--dim)}
+.bar i{display:block;height:12px;border-radius:2px}
+.bar em{font-style:normal;white-space:nowrap}
+table{width:100%;border-collapse:collapse;margin:8px 0}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;font-size:12px}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--dim);font-weight:400;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em}
+tr.tot td{color:var(--green);font-weight:700;border-bottom:none}
+.msg{border:1px dashed var(--line);border-radius:3px;padding:14px;color:var(--dim)}
+.payback{font-size:15px;margin:6px 0}
+.payback strong{color:var(--green)}
+.assump{color:var(--dim);font-size:11.5px}
+.assump li{margin-bottom:3px}
+.rs{margin-bottom:26px}
+.info{font:inherit;font-size:11px;background:none;border:1px solid var(--line);color:var(--dim);border-radius:50%;width:18px;height:18px;line-height:15px;padding:0;cursor:pointer;vertical-align:middle;margin-left:6px}
+.info:hover{color:var(--green);border-color:var(--green)}
+.pop{display:none;margin-top:8px}
+.pop.open{display:block}
+.disc{background:rgba(232,176,74,.07);border:1px solid rgba(232,176,74,.35);border-radius:3px;padding:14px 16px;font-size:11.5px;color:rgba(238,240,232,.82)}
+.disc h3{margin:0 0 8px;font-family:'Archivo Black',sans-serif;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--amber)}
+.disc p{margin:0 0 8px}.disc p:last-child{margin:0}
+.disc .short{display:none}
+@media(max-width:700px){.disc .short{display:block}.disc .long{display:none}.disc.expanded .short{display:none}.disc.expanded .long{display:block}}
+.disc .more{display:none;background:none;border:none;color:var(--amber);font:inherit;font-size:11px;text-decoration:underline;cursor:pointer;padding:0;margin-top:6px}
+@media(max-width:700px){.disc .more{display:inline}}
+.cta{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;padding:13px 20px;border-radius:2px;cursor:pointer;border:1px solid var(--green);background:var(--green);color:#0b0d0c;font-weight:700}
+.btn.sec2{background:transparent;color:var(--green)}
+.ctasub{color:var(--dim);font-size:11px;width:100%;margin:0}
+.xlink{margin-top:14px;font-size:11.5px;color:var(--dim)}
+#exportFooter{display:none}
+@media print{
+ body{background:#fff;color:#000}.grid{display:block}.card{border:none;background:none;padding:0}
+ #inputs,.modes,nav,.cta,.info,.pop,.xlink,.disc,.wordmark{display:none!important}
+ .stat,th,td,.assump,.lead{color:#000;border-color:#999}.stat b,.card h2,tr.tot td,.payback strong{color:#000}
+ #exportFooter{display:block;margin-top:24px;border-top:1px solid #000;padding-top:10px;font-size:10px;color:#000;position:fixed;bottom:0;left:0;right:0;background:#fff}
+}
+
+.presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;font-size:10.5px;color:var(--dim)}
+.presets button{font:inherit;font-size:10.5px;padding:6px 10px;background:rgba(238,240,232,.05);border:1px solid var(--line);color:var(--paper);border-radius:2px;cursor:pointer}
+.presets button:hover{border-color:var(--green);color:var(--green)}
+.exnote{display:none;margin-bottom:14px;padding:10px 12px;border:1px solid rgba(232,176,74,.4);background:rgba(232,176,74,.07);color:var(--amber);font-size:11px;border-radius:3px}
+dialog{background:#0e100e;color:var(--paper);border:1px solid rgba(141,198,63,.4);border-radius:4px;padding:24px;max-width:460px;width:calc(100% - 28px);font-family:inherit;font-size:13px}
+dialog::backdrop{background:rgba(0,0,0,.72)}
+dialog h2{font-family:'Archivo Black',sans-serif;font-size:14px;letter-spacing:.05em;text-transform:uppercase;color:var(--green);margin:0 0 6px}
+dialog p{color:var(--dim);font-size:11.5px;margin:0 0 14px}
+.f textarea{width:100%;font:inherit;font-size:13px;color:var(--paper);background:rgba(238,240,232,.06);border:1px solid var(--line);border-radius:2px;padding:9px 10px;min-height:64px;resize:vertical}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:11px;color:var(--dim);margin-bottom:10px}
+.chk input{margin-top:3px}
+.hp{position:absolute;left:-9999px;height:0;overflow:hidden}
+.dact{display:flex;gap:8px;margin-top:14px}
+#leadStatus{margin-top:12px;font-size:11.5px;color:var(--green);min-height:16px}
+#stickyBar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(11,13,12,.96);border-top:1px solid rgba(141,198,63,.4);padding:10px 14px;justify-content:space-between;align-items:center;gap:10px;font-size:12px}
+#stickyBar .btn{padding:9px 14px;font-size:10.5px;white-space:nowrap}
+@media(max-width:900px){
+ .wrap{padding:18px 14px 92px}
+ .f input,.f select,.f textarea{font-size:16px;padding:12px 10px}
+ .modes button{padding:14px 9px;font-size:12px}
+ #stickyBar{display:flex}
+ .btn{width:100%;text-align:center}
+ h1{font-size:21px}
+}
+@media print{#stickyBar,dialog{display:none!important}}
+.cta-main{width:100%;text-align:center;margin-top:6px}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="wordmark">Composite<span>·</span>Conveyor<span>·</span>Rollers</div>
+  <nav>
+    <a href="index.html">← Hero</a>
+    <a href="family.html">Roller Family</a>
+    <a href="roi-calculator.html">ROI Calculator</a>
+    <a href="guide.html">Get the Guide</a>
+  </nav>
+
+  <h1>Steel → Composite TCO &amp; Payback</h1>
+  <p class="lead">Directional estimate based on field data. Engineers will verify for formal proposals.</p>
+
+  <div class="grid">
+    <div class="card" id="inputs">
+      <h2>Your inputs</h2>
+      <div class="presets" id="presets"></div>
+      <div class="exnote" id="exNote"></div>
+      <div class="modes">
+        <button type="button" id="mQuick" class="on">Quick</button>
+        <button type="button" id="mFull">Full TCO</button>
+      </div>
+      <div id="form"></div>
+    </div>
+
+    <div id="results">
+      <div class="card rs" id="rBenefits"></div>
+      <div class="card rs" id="rAnnual"></div>
+      <div class="card rs" id="rTco"></div>
+      <div class="card rs" id="rAssump"></div>
+      <div class="card">
+        <div class="disc" id="discMain"></div>
+        <div class="cta">
+          <button class="btn sec2" type="button" id="emailBtn">Email me these results</button>
+          <button class="btn sec2" type="button" id="pdfBtn">Download PDF summary</button>
+          <button class="btn cta-main" type="button" id="ctaQuote">Request a roller quote</button>
+          <p class="ctasub">No obligation — thinking of switching to HDPE composite rollers, or want to trial a few? Tell us and we’ll quote.</p>
+        </div>
+        <div class="xlink">Just want the quick weight, noise &amp; friction numbers? <a href="roi-calculator.html">Try our ROI Calculator →</a></div>
+      </div>
+    </div>
+  </div>
+  <div id="stickyBar"><span id="barTxt">—</span><a class="btn" href="#results" style="text-decoration:none">See results</a></div>
+<dialog id="leadDlg">
+  <h2 id="leadTitle">Request a roller quote</h2>
+  <p>Tell us where to send it. We’ll receive your details together with the numbers shown here, so we can quote CCR composite rollers to replace your steel rollers.</p>
+  <form id="leadForm" method="dialog">
+    <div class="f"><label for="ln">Name *</label><input id="ln" name="name" required autocomplete="name"></div>
+    <div class="f"><label for="le">Email *</label><input id="le" name="email" type="email" required autocomplete="email"></div>
+    <div class="f"><label for="lc">Company</label><input id="lc" name="company" autocomplete="organization"></div>
+    <div class="f"><label for="lp">Phone</label><input id="lp" name="phone" type="tel" autocomplete="tel"></div>
+    <div class="f"><label for="lint">I’m interested in</label><select id="lint" name="interest"><option>A quote to switch to composite (HDPE) rollers</option><option>Trial / sample rollers</option><option>Not sure yet — just exploring</option></select></div>
+    <div class="f"><label for="lno">Roller type, quantities, site (optional)</label><textarea id="lno" name="notes"></textarea></div>
+    <div class="hp"><input name="website" tabindex="-1" autocomplete="off"></div>
+    <label class="chk"><input type="checkbox" name="sendCopy" checked> Email me a copy of these results</label>
+    <label class="chk"><input type="checkbox" name="consent" required> I agree to be contacted about this enquiry.</label>
+    <div class="dact"><button class="btn" type="submit">Send</button><button class="btn sec2" type="button" id="leadCancel">Close</button></div>
+    <div id="leadStatus" role="status"></div>
+  </form>
+</dialog>
+<div id="exportFooter"></div>
+</div>
+
+<script>
+// ---------- Assumptions (published field data) ----------
+const A = { weightSave:{troughing:.50, return:.60}, friction:{conservative:.08, spec:.19}, noise:70 };
+
+// ---------- Disclaimer copy (final text) ----------
+const DISC_FULL = `<h3>Directional Estimate Only</h3>
+<p>This calculator provides a directional estimate based on published field performance data from Composite Roller Co. installations (including BHP, Dampier Salt, Nutrien and other active sites) and industry-standard steel roller weights.</p>
+<p>Actual results vary significantly depending on belt speed, load, material characteristics, operating environment, maintenance practices, and the exact roller specification.</p>
+<p>Weight savings of 50–60%, noise reduction of ≥70%, and running-friction reductions of 8% (conservative) to 12–26% (specification range) are typical observed values — not guarantees.</p>
+<p>Purchase prices, service lives, labour rates and downtime costs are user-entered assumptions.</p>
+<p><strong>This tool is not a formal quotation or engineering assessment.</strong> For roller pricing and a verified proposal, please request a quote from our team.</p>`;
+const DISC_SHORT = `Directional estimate only. Based on published field data. Actual results vary by site conditions. Not a formal quotation — request a roller quote from our team for verified pricing.`;
+const DISC_EXPORT = `<strong>Important Notice</strong><br>The figures shown are directional estimates only. They are derived from Composite Roller Co.’s published performance data and user-supplied assumptions. Real-world outcomes depend on many site-specific factors. This document does not constitute a formal quotation, warranty, or engineering recommendation. Please contact Composite Roller Co. to request a roller quote.`;
+
+// ---------- Field config ----------
+const F = [
+ {id:'currency',l:'Currency',opts:[['ZAR','ZAR'],['USD','USD'],['AUD','AUD'],['EUR','EUR']],v:'ZAR'},
+ {id:'numRollers',l:'Number of rollers being replaced',v:100,min:1,step:1},
+ {id:'steelWeightKg',l:'Current steel roller weight (kg per roller)',min:0,step:.1,ph:'e.g. 30',n:'Auto-fills from the lookup above (set weight ÷ 3 rollers), or enter your own from a nameplate/spec sheet.'},
+ {id:'rollerPosition',l:'Roller position',opts:[['troughing','Troughing'],['return','Return']],v:'troughing'},
+ {id:'energyBasis',l:'Energy savings basis',opts:[['conservative','Conservative (8%)'],['spec','Specification range (12–26%, midpoint used)']],v:'conservative'},
+ {s:'Energy (optional)'},
+ {id:'motorKw',l:'Conveyor drive motor power (kW)',min:0,step:1},
+ {id:'hoursPerDay',l:'Operating hours per day',min:0,max:24,step:.5},
+ {id:'electricityCost',l:'Electricity cost (per kWh)',min:0,step:.01},
+ {s:'Purchase price',full:1},
+ {id:'steelPrice',l:'Steel roller unit price',min:0,step:1,full:1},
+ {id:'compositePrice',l:'Composite roller unit price',min:0,step:1,full:1},
+ {id:'priceDifference',l:'Or: price difference (composite − steel)',step:1,full:1,n:'Used if unit prices are not both entered. Can be negative.'},
+ {s:'Service life & horizon',full:1},
+ {id:'steelLifeYears',l:'Expected steel service life (years)',v:4,min:.5,max:20,step:.5,full:1,n:'Typical 3–5 years. Your assumption.'},
+ {id:'compositeLifeYears',l:'Expected composite service life (years)',v:7,min:.5,max:20,step:.5,full:1,n:'Typical 5–8+ years. Your assumption.'},
+ {id:'timeHorizonYears',l:'Analysis horizon',opts:[[3,'3 years'],[5,'5 years'],[7,'7 years'],[10,'10 years']],v:5,full:1},
+ {s:'Labour & downtime',full:1},
+ {id:'labourCostPerChangeout',l:'Labour cost per roller change-out',min:0,step:1,full:1},
+ {id:'labourHoursPerChangeout',l:'Or: labour hours per change-out',min:0,step:.1,full:1},
+ {id:'hourlyLabourRate',l:'Hourly labour rate',min:0,step:1,full:1},
+ {id:'downtimeHoursPerEvent',l:'Downtime hours per change-out event (optional)',min:0,step:.5,full:1},
+ {id:'downtimeCostPerHour',l:'Downtime cost per hour (optional)',min:0,step:1,full:1},
+];
+const form = document.getElementById('form');
+form.innerHTML = F.map(f=>{
+  const cls = 'f'+(f.full?' full-only':'');
+  if(f.s) return `<div class="sec ${f.full?'full-only':''}">${f.s}</div>`;
+  const ctl = f.opts
+    ? `<select id="${f.id}">${f.opts.map(o=>`<option value="${o[0]}"${String(o[0])===String(f.v)?' selected':''}>${o[1]}</option>`).join('')}</select>`
+    : `<input id="${f.id}" type="number" inputmode="decimal" ${f.min!==undefined?`min="${f.min}"`:''} ${f.max!==undefined?`max="${f.max}"`:''} step="${f.step||'any'}" ${f.v!==undefined?`value="${f.v}"`:''} ${f.ph?`placeholder="${f.ph}"`:''}>`;
+  return `<div class="${cls}"><label for="${f.id}">${f.l}</label>${ctl}${f.n?`<div class="n">${f.n}</div>`:''}</div>`;
+}).join('');
+// Published 3-roll troughing in-line idler TOTAL set weights (kg): CEMA class > diameter (mm) > belt width (mm).
+// Source: third-party CEMA idlers catalogue (same table as roi-calculator.html). Keep the two in sync.
+const steelData = {
+    B: {
+      89:  {450:13,500:14,600:15,750:17,900:19,1000:21,1050:21,1200:29},
+      102: {450:15,500:15,600:17,750:19,900:22,1000:23,1050:24,1200:32},
+      114: {450:15,500:17,600:18,750:20,900:23,1000:25,1050:25,1200:34},
+      127: {450:17,500:17,600:20,750:22,900:25,1000:27,1050:28,1200:37}
+    },
+    C: {
+      102: {450:16,500:17,600:20,750:23,900:29,1000:32,1050:32,1200:38,1350:42,1400:43,1500:49},
+      114: {450:17,500:18,600:21,750:25,900:31,1000:34,1050:34,1200:41,1350:44,1400:46,1500:48},
+      127: {450:19,500:20,600:23,750:27,900:34,1000:37,1050:37,1200:44,1350:48,1400:53,1500:55},
+      133: {450:20,500:21,600:24,750:29,900:35,1000:38,1050:39,1200:45,1350:50,1400:55,1500:57},
+      139: {450:21,500:21,600:25,750:30,900:36,1000:39,1050:40,1200:47,1350:51,1400:56,1500:59},
+      152: {450:22,500:23,600:27,750:32,900:38,1000:41,1050:42,1200:50,1350:54,1400:59,1500:62},
+      159: {450:23,500:24,600:28,750:33,900:39,1000:43,1050:43,1200:51,1350:55,1400:61,1500:63}
+    },
+    D: {
+      127: {600:30,750:34,900:41,1000:44,1050:44,1200:52,1350:57,1400:63,1500:68,1600:75,1800:83},
+      133: {600:31,750:35,900:42,1000:45,1050:46,1200:53,1350:59,1400:65,1500:70,1600:77,1800:86},
+      139: {600:32,750:36,900:41,1000:46,1050:47,1200:55,1350:61,1400:67,1500:71,1600:79,1800:88},
+      152: {600:34,750:38,900:45,1000:49,1050:50,1200:57,1350:63,1400:70,1500:74,1600:81,1800:91},
+      159: {600:35,750:39,900:46,1000:50,1050:50,1200:58,1350:64,1400:71,1500:76,1600:83,1800:93},
+      178: {600:37,750:42,900:49,1000:53,1050:54,1200:62,1350:68,1400:75,1500:80,1600:88,1800:98}
+    },
+    E: {
+      152: {900:63,1000:68,1050:69,1200:80,1350:94,1400:98,1500:102,1600:109,1800:128,2000:150,2100:155,2400:193},
+      159: {900:64,1000:69,1050:71,1200:81,1350:94,1400:98,1500:102,1600:109,1800:129,2000:151,2100:156,2400:194},
+      178: {900:68,1000:74,1050:75,1200:87,1350:101,1400:106,1500:110,1600:117,1800:138,2000:161,2100:167,2400:198},
+      193: {900:63,1000:77,1050:78,1200:90,1350:106,1400:109,1500:116,1600:122,1800:143,2000:167,2100:172,2400:212},
+      219: {900:78,1000:84,1050:87,1200:99,1350:115,1400:120,1500:125,1600:132,1800:154,2000:180,2100:185,2400:227}
+    },
+    F: {
+      178: {1500:135,1600:150,1800:182,2000:198,2100:204,2400:225,2500:247,2600:254,2800:353,3000:375},
+      193: {1500:139,1600:155,1800:187,2000:203,2100:209,2400:232,2500:254,2600:261,2800:363,3000:383}
+    }
+  };
+(function(){
+  const lk=document.createElement('div'); lk.className='f';
+  lk.innerHTML='<label>Look up steel weight (optional)</label><div style="display:flex;gap:6px;margin-bottom:6px"><select id="cemaClass" style="flex:1;min-width:0"><option value="">CEMA class...</option></select><select id="diaSelect" style="flex:1;min-width:0" disabled><option value="">Diameter...</option></select></div><select id="bwSelect" disabled><option value="">Belt width...</option></select><div class="n">Published 3-roll troughing idler weights (per full set) from a third-party CEMA idler catalogue — an industry reference, not our own product line. Nominal values; auto-fills the weight below.</div>';
+  const sw=document.getElementById('steelWeightKg').closest('.f'); sw.parentNode.insertBefore(lk,sw);
+  const cs=lk.querySelector('#cemaClass'), ds=lk.querySelector('#diaSelect'), bs=lk.querySelector('#bwSelect');
+  const fill=(sel,label,items,suf)=>{ sel.innerHTML=`<option value="">${label}</option>`+items.map(x=>`<option value="${x}">${x}${suf}</option>`).join(''); };
+  Object.keys(steelData).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c}">CEMA ${c}</option>`));
+  cs.onchange=()=>{ fill(ds,'Diameter...',cs.value?Object.keys(steelData[cs.value]):[],' mm'); ds.disabled=!cs.value; fill(bs,'Belt width...',[],''); bs.disabled=true; };
+  ds.onchange=()=>{ fill(bs,'Belt width...',ds.value?Object.keys(steelData[cs.value][ds.value]):[],' mm'); bs.disabled=!ds.value; };
+  bs.onchange=()=>{ if(!bs.value) return; const w=document.getElementById('steelWeightKg'); w.value=(steelData[cs.value][ds.value][bs.value]/3).toFixed(1); w.dispatchEvent(new Event('input',{bubbles:true})); };
+})();
+const ids = F.filter(f=>f.id).map(f=>f.id);
+
+// ---------- Read / calc ----------
+const num = id => { const el=document.getElementById(id); const x=parseFloat(el.value); return isNaN(x)?undefined:x; };
+const str = id => document.getElementById(id).value;
+function read(){
+  const v={}; ids.forEach(id=>{ v[id]=(id==='currency'||id==='rollerPosition'||id==='energyBasis')?str(id):num(id); });
+  v.mode = document.body.classList.contains('full')?'full':'quick';
+  return v;
+}
+function calc(v){
+  const r={}, n=v.numRollers;
+  r.wSave=A.weightSave[v.rollerPosition]; r.fr=A.friction[v.energyBasis];
+  if(!(n>0) || !(v.steelWeightKg>0)) return {invalid:true};
+  r.steelTot=n*v.steelWeightKg; r.compTot=r.steelTot*(1-r.wSave); r.removed=r.steelTot-r.compTot;
+  // energy
+  r.hasEnergy = v.motorKw>0 && v.hoursPerDay>0 && v.electricityCost>0;
+  r.eSteelYr = r.hasEnergy ? v.motorKw*v.hoursPerDay*365*v.electricityCost : 0;
+  r.eSave = r.eSteelYr*r.fr;
+  if(v.mode!=='full') return r;
+  // full TCO
+  const H=v.timeHorizonYears, LS=v.steelLifeYears, LC=v.compositeLifeYears;
+  let sp=v.steelPrice, cp=v.compositePrice;
+  r.diffOnly=false;
+  if(!(sp>=0 && cp>=0)){
+    if(v.priceDifference!==undefined){ if(sp===undefined){sp=0;r.diffOnly=true;} cp=sp+v.priceDifference; }
+    else { r.tcoMissing='Enter both unit prices, or a price difference.'; return r; }
+  }
+  if(!(LS>0 && LC>0 && H>0)){ r.tcoMissing='Enter service lives for steel and composite.'; return r; }
+  const labPer = v.labourCostPerChangeout!==undefined ? v.labourCostPerChangeout : ((v.labourHoursPerChangeout||0)*(v.hourlyLabourRate||0));
+  const dtEvent = (v.downtimeHoursPerEvent||0)*(v.downtimeCostPerHour||0);
+  const opt = (price,life)=>{
+    const installs=Math.ceil(H/life);
+    return {installs, life, purchase:installs*n*price, labour:installs*n*labPer, downtime:installs*dtEvent, per:n*price+n*labPer+dtEvent};
+  };
+  const S=opt(sp,LS), C=opt(cp,LC);
+  S.energy=r.eSteelYr*H; C.energy=(r.eSteelYr-r.eSave)*H;
+  S.total=S.purchase+S.labour+S.downtime+S.energy; C.total=C.purchase+C.labour+C.downtime+C.energy;
+  r.S=S; r.C=C; r.H=H; r.savings=S.total-C.total;
+  r.aLabour=((S.labour+S.downtime)-(C.labour+C.downtime))/H;
+  r.aOp=r.eSave+r.aLabour;
+  // payback: monthly cumulative-cost crossover
+  const cum=(o,e,m)=>{ let t=e/12*m; for(let k=0;k<o.installs;k++){ if(k*o.life*12<=m) t+=o.per; } return t; };
+  r.payMonths=null;
+  for(let m=0;m<=H*12;m++){ if(cum(C,r.eSteelYr-r.eSave,m)<=cum(S,r.eSteelYr,m)){ r.payMonths=m; break; } }
+  return r;
+}
+
+// ---------- Render ----------
+let LAST=null;
+const setBar=t=>{document.getElementById('barTxt').textContent=t;};
+const kg = x=>Math.round(x).toLocaleString();
+const info = `<button class="info" type="button" aria-label="About this estimate">i</button><div class="pop"><div class="disc">${DISC_FULL}</div></div>`;
+function render(){
+  const v=read(), r=calc(v);
+  LAST={v,r};
+  const money=x=>new Intl.NumberFormat(undefined,{style:'currency',currency:v.currency,maximumFractionDigits:0}).format(x);
+  const B=document.getElementById('rBenefits'), An=document.getElementById('rAnnual'), T=document.getElementById('rTco'), As=document.getElementById('rAssump');
+  if(r.invalid){
+    B.innerHTML='<h2>Immediate benefits</h2><div class="msg">Enter the number of rollers and the steel roller weight to see results.</div>';
+    An.style.display=T.style.display='none'; As.style.display='none'; setBar('Enter rollers & steel weight'); return;
+  }
+  An.style.display=As.style.display=''; T.style.display='';
+  const max=r.steelTot;
+  B.innerHTML=`<h2>Immediate benefits</h2>
+  <div class="stats">
+   <div class="stat hl"><b>${kg(r.removed)} kg</b><small>total weight removed (${kg(r.removed*2.20462)} lb)</small></div>
+   <div class="stat"><b>≥${A.noise}%</b><small>quieter operation</small></div>
+   <div class="stat"><b>≥8%</b><small>lower startup friction (min.)</small></div>
+   <div class="stat"><b>${Math.round(r.fr*100)}%</b><small>running-friction reduction (${v.energyBasis==='spec'?'spec midpoint':'conservative'})</small></div>
+  </div>
+  <div class="bars">
+   <div class="bar"><span>Steel</span><i style="width:${100*.6}%;background:#6b7370"></i><em>${kg(r.steelTot)} kg</em></div>
+   <div class="bar"><span>Composite</span><i style="width:${100*.6*r.compTot/max}%;background:var(--green)"></i><em>${kg(r.compTot)} kg</em></div>
+  </div>`;
+
+  An.innerHTML = '<h2>Annual operating savings</h2>' + (
+    (r.hasEnergy||v.mode==='full') ? `<div class="stats">
+      <div class="stat"><b>${r.hasEnergy?money(r.eSave):'—'}</b><small>energy saving / year${r.hasEnergy?'':' (add motor kW, hours, tariff)'}</small></div>
+      ${v.mode==='full'&&r.aLabour!==undefined?`<div class="stat"><b>${money(r.aLabour)}</b><small>labour &amp; downtime saving / year</small></div>
+      <div class="stat hl"><b>${money(r.aOp)}</b><small>combined annual operating saving ${info}</small></div>`:''}
+    </div>` : '<div class="msg">Add motor power, operating hours and electricity cost for an annual energy saving. Switch to Full TCO for labour and payback.</div>');
+
+  if(v.mode!=='full'){
+    T.innerHTML='<h2>Multi-year TCO &amp; payback</h2><div class="msg">Switch to <strong>Full TCO</strong> mode to compare purchase, labour, energy and downtime over your chosen horizon and see the payback period.</div>';
+  } else if(r.tcoMissing){
+    T.innerHTML=`<h2>Multi-year TCO &amp; payback</h2><div class="msg">Insufficient data — ${r.tcoMissing}</div>`;
+  } else {
+    const S=r.S,C=r.C, row=(l,a,b)=>`<tr><td>${l}</td><td>${money(a)}</td><td>${money(b)}</td></tr>`;
+    let pay;
+    if(r.payMonths===null) pay=`Composite does <strong>not</strong> pay back within ${r.H} years under these assumptions.`;
+    else if(r.payMonths===0) pay=`Composite is <strong>cheaper from day one</strong> under these assumptions.`;
+    else pay=`Composite pays for itself in <strong>${(r.payMonths/12).toFixed(1)} years</strong> (${r.payMonths} months) under these assumptions.`;
+    T.innerHTML=`<h2>${r.H}-year TCO comparison</h2>
+    <table><tr><th></th><th>Steel</th><th>Composite</th></tr>
+      ${row('Purchase',S.purchase,C.purchase)}${row('Labour',S.labour,C.labour)}${row('Energy',S.energy,C.energy)}${row('Downtime',S.downtime,C.downtime)}
+      <tr class="tot"><td>Total cost</td><td>${money(S.total)}</td><td>${money(C.total)}</td></tr></table>
+    <div class="stats"><div class="stat hl"><b>${money(r.savings)}</b><small>total ${r.savings>=0?'savings':'extra cost'} over ${r.H} years ${info}</small></div></div>
+    <div class="payback">${pay} ${info}</div>
+    ${r.diffOnly?'<div class="assump">Note: only a price difference was entered, so steel replacement purchases are not counted (conservative for composite).</div>':''}`;
+  }
+
+  As.innerHTML=`<h2>Assumptions used</h2><ul class="assump">
+    <li>Weight saving: ${A.weightSave[v.rollerPosition]*100}% (${v.rollerPosition})</li>
+    <li>Friction reduction: ${Math.round(r.fr*100)}% (${v.energyBasis==='spec'?'midpoint of 12–26% specification range':'conservative'})</li>
+    ${v.mode==='full'?`<li>Service lives: steel ${v.steelLifeYears??'—'} yr, composite ${v.compositeLifeYears??'—'} yr · horizon ${v.timeHorizonYears} yr · currency ${v.currency}</li>
+    <li>Each replacement cycle counts purchase + labour + downtime for all rollers.</li>`:''}
+    <li>Steel weights from the lookup are nominal values from a third-party CEMA idler catalogue (industry reference, not CCR testing).</li>
+    <li>Source: published field data from BHP, Dampier Salt, Nutrien and other sites. Directional estimate only.</li></ul>`;
+  setBar(v.mode==='full'&&r.S?(r.payMonths===null?'No payback in '+r.H+' yr':r.payMonths===0?'Cheaper from day one':'Payback '+(r.payMonths/12).toFixed(1)+' yr')+' · '+money(r.savings):kg(r.removed)+' kg removed');
+  saveState();
+}
+
+// ---------- Disclaimer blocks ----------
+document.getElementById('discMain').innerHTML =
+  `<div class="long">${DISC_FULL}</div><div class="short">${DISC_SHORT}</div><button class="more" type="button">Read full disclaimer</button>`;
+document.getElementById('exportFooter').innerHTML = DISC_EXPORT;
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('info')) e.target.nextElementSibling.classList.toggle('open');
+  if(e.target.classList.contains('more')){ const d=e.target.closest('.disc'); d.classList.toggle('expanded'); e.target.textContent=d.classList.contains('expanded')?'Show short version':'Read full disclaimer'; }
+});
+
+// ---------- Phase 2: examples (ILLUSTRATIVE values - edit freely) ----------
+const PRESETS=[
+ {id:'pilbara',label:'Pilbara overland',v:{currency:'AUD',numRollers:1500,steelWeightKg:38,rollerPosition:'troughing',energyBasis:'conservative',motorKw:2000,hoursPerDay:22,electricityCost:.2,steelPrice:260,compositePrice:390,steelLifeYears:3,compositeLifeYears:6,timeHorizonYears:5,labourCostPerChangeout:120,downtimeHoursPerEvent:4,downtimeCostPerHour:20000}},
+ {id:'coal',label:'Underground coal',v:{currency:'ZAR',numRollers:400,steelWeightKg:28,rollerPosition:'troughing',energyBasis:'conservative',motorKw:750,hoursPerDay:20,electricityCost:1.6,steelPrice:2200,compositePrice:3300,steelLifeYears:3,compositeLifeYears:6,timeHorizonYears:5,labourCostPerChangeout:900}},
+ {id:'return',label:'Plant return rollers',v:{currency:'ZAR',numRollers:120,steelWeightKg:18,rollerPosition:'return',energyBasis:'conservative',motorKw:250,hoursPerDay:16,electricityCost:1.8,steelPrice:1400,compositePrice:1900,steelLifeYears:4,compositeLifeYears:7,timeHorizonYears:5,labourCostPerChangeout:600}},
+];
+let ACTIVE_PRESET=null;
+const setVals=vals=>F.forEach(f=>{ if(!f.id) return; const nv=vals[f.id]; document.getElementById(f.id).value = nv!==undefined?nv:(f.v!==undefined?f.v:''); });
+function updateNote(){
+  const p=PRESETS.find(x=>x.id===ACTIVE_PRESET), n=document.getElementById('exNote');
+  if(!p){ACTIVE_PRESET=null; n.style.display='none'; return;}
+  n.style.display='block'; n.textContent=`Illustrative example loaded (${p.label}) — sample values only, not CCR field data. Replace them with your own numbers.`;
+}
+document.getElementById('presets').innerHTML='<span>Load an example:</span>'+PRESETS.map(p=>`<button type="button" data-ex="${p.id}">${p.label}</button>`).join('')+'<button type="button" data-ex="">Clear</button>';
+document.getElementById('presets').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const p=PRESETS.find(x=>x.id===b.dataset.ex);
+  ACTIVE_PRESET=p?p.id:null; setVals(p?p.v:{}); updateNote(); setMode(p?'full':document.body.classList.contains('full')?'full':'quick');
+});
+function guessCurrency(){
+  const reg=((navigator.language||'').split('-')[1]||'').toUpperCase();
+  if(reg==='ZA') return 'ZAR'; if(reg==='AU') return 'AUD'; if(reg==='US') return 'USD';
+  return ['DE','FR','ES','IT','NL','IE','PT','BE','AT','FI','GR'].includes(reg)?'EUR':null;
+}
+
+// ---------- Phase 2: PDF export (export footer on EVERY page) ----------
+const plain=s=>String(s).replace(/<br>/g,' ').replace(/<\/(p|h3)>/g,' ').replace(/<[^>]+>/g,'').replace(/[\u2018\u2019]/g,"'").replace(/\u2265/g,'>=').replace(/[\u2013\u2014]/g,'-').replace(/\u2192/g,'->').replace(/\u00b7/g,'|').replace(/\s+/g,' ').trim();
+const pdfMoney=(c,x)=>(x<0?'-':'')+c+' '+Math.round(Math.abs(x)).toLocaleString('en-US');
+function buildPdf(){
+  if(!LAST||LAST.r.invalid){ alert('Enter the number of rollers and steel roller weight first.'); return; }
+  if(!window.jspdf){ window.print(); return; }
+  const {jsPDF}=window.jspdf, doc=new jsPDF({unit:'pt',format:'a4'});
+  const {v,r}=LAST, W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=44, LIM=H-84, cur=v.currency, m=x=>pdfMoney(cur,x);
+  let y=M;
+  const need=h=>{ if(y+h>LIM){ doc.addPage(); y=M; } };
+  const txt=(s,size=10,bold=false,color=30,gap=4)=>{ doc.setFont('helvetica',bold?'bold':'normal'); doc.setFontSize(size); doc.setTextColor(color); const ln=doc.splitTextToSize(plain(s),W-2*M); need(ln.length*(size+3)+gap); doc.text(ln,M,y+size); y+=ln.length*(size+3)+gap; };
+  const head=s=>{ y+=8; need(34); txt(s,11,true,20,3); doc.setDrawColor(141,198,63); doc.line(M,y-1,W-M,y-1); y+=7; };
+  const kv=(k,val)=>{ need(16); doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90); doc.text(plain(k),M,y+10); doc.setFont('helvetica','bold'); doc.setTextColor(20); doc.text(plain(val),W-M,y+10,{align:'right'}); y+=16; };
+  const row=(a,b,c,bold)=>{ need(16); doc.setFont('helvetica',bold?'bold':'normal'); doc.setFontSize(10); doc.setTextColor(bold?0:50); doc.text(plain(a),M,y+10); doc.text(plain(b),W-M-130,y+10,{align:'right'}); doc.text(plain(c),W-M,y+10,{align:'right'}); y+=16; };
+
+  txt('Steel to Composite - TCO & Payback Summary',16,true,0,4);
+  txt('Composite Conveyor Rollers | Directional estimate | '+new Date().toLocaleDateString('en-GB'),9,false,90,6);
+  const ex=PRESETS.find(x=>x.id===ACTIVE_PRESET);
+  if(ex) txt('Note: based on illustrative example values ('+ex.label+'), not CCR field data.',9,true,150,4);
+
+  head('Inputs');
+  kv('Rollers being replaced',String(v.numRollers)); kv('Steel roller weight',v.steelWeightKg+' kg each');
+  kv('Roller position',v.rollerPosition); kv('Energy basis',v.energyBasis==='spec'?'Specification range (midpoint)':'Conservative');
+  if(r.hasEnergy) kv('Drive motor / hours per day / tariff',v.motorKw+' kW | '+v.hoursPerDay+' h | '+v.electricityCost+' per kWh');
+  if(v.mode==='full'&&r.S){
+    kv('Unit price steel / composite',(r.diffOnly?'n/a':m(v.steelPrice))+' / '+(r.diffOnly?('diff '+m(v.priceDifference)):m(v.compositePrice)));
+    kv('Service life steel / composite',v.steelLifeYears+' yr / '+v.compositeLifeYears+' yr'); kv('Analysis horizon',r.H+' years');
+  }
+
+  head('Immediate benefits');
+  kv('Total weight removed',kg(r.removed)+' kg ('+kg(r.removed*2.20462)+' lb)');
+  kv('Steel vs composite weight',kg(r.steelTot)+' kg vs '+kg(r.compTot)+' kg');
+  kv('Noise','>=70% quieter'); kv('Startup friction','>=8% lower (min.)'); kv('Running-friction reduction',Math.round(r.fr*100)+'%');
+
+  if(r.hasEnergy||(v.mode==='full'&&r.S)){
+    head('Annual operating savings');
+    if(r.hasEnergy) kv('Energy saving per year',m(r.eSave));
+    if(v.mode==='full'&&r.S){ kv('Labour & downtime saving per year',m(r.aLabour)); kv('Combined annual operating saving',m(r.aOp)); }
+  }
+  if(v.mode==='full'&&r.S){
+    head(r.H+'-year TCO comparison');
+    row('','Steel','Composite',true);
+    row('Purchase',m(r.S.purchase),m(r.C.purchase)); row('Labour',m(r.S.labour),m(r.C.labour));
+    row('Energy',m(r.S.energy),m(r.C.energy)); row('Downtime',m(r.S.downtime),m(r.C.downtime));
+    row('Total cost',m(r.S.total),m(r.C.total),true); y+=4;
+    kv('Total '+(r.savings>=0?'savings':'extra cost')+' over '+r.H+' years',m(Math.abs(r.savings)));
+    txt(r.payMonths===null?'Composite does not pay back within '+r.H+' years under these assumptions.':r.payMonths===0?'Composite is cheaper from day one under these assumptions.':'Composite pays for itself in '+(r.payMonths/12).toFixed(1)+' years ('+r.payMonths+' months) under these assumptions.',10,true,20,4);
+    if(r.diffOnly) txt('Only a price difference was entered, so steel replacement purchases are not counted.',8.5,false,110,4);
+  }
+  head('Assumptions used');
+  txt('Weight saving '+A.weightSave[v.rollerPosition]*100+'% ('+v.rollerPosition+'). Friction reduction '+Math.round(r.fr*100)+'%. Each replacement cycle counts purchase, labour and downtime for all rollers. Source: published field data from BHP, Dampier Salt, Nutrien and other sites. Directional estimate only.',9,false,70,2);
+
+  const n=doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){
+    doc.setPage(i); doc.setDrawColor(150); doc.line(M,H-66,W-M,H-66);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(80);
+    doc.text(doc.splitTextToSize(plain(DISC_EXPORT),W-2*M),M,H-56);
+    doc.text('Page '+i+' of '+n,W-M,H-14,{align:'right'});
+  }
+  doc.save('CCR-TCO-Summary.pdf');
+}
+document.getElementById('pdfBtn').addEventListener('click',buildPdf);
+
+// ---------- Phase 2: lead capture (posts inputs + results) ----------
+const dlg=document.getElementById('leadDlg'), lf=document.getElementById('leadForm'), ls=document.getElementById('leadStatus');
+function openLead(intent){
+  if(!LAST||LAST.r.invalid){ alert('Enter the number of rollers and steel roller weight first.'); return; }
+  lf.dataset.intent=intent; ls.textContent='';
+  document.getElementById('leadTitle').textContent=intent==='email'?'Email me these results':'Request a roller quote';
+  dlg.showModal();
+}
+document.getElementById('ctaQuote').addEventListener('click',()=>openLead('quote'));
+document.getElementById('emailBtn').addEventListener('click',()=>openLead('email'));
+document.getElementById('leadCancel').addEventListener('click',()=>dlg.close());
+lf.addEventListener('submit',async e=>{
+  e.preventDefault(); if(lf.elements['website'].value) return;
+  const fd=new FormData(lf), {v,r}=LAST, btn=lf.querySelector('[type=submit]');
+  const body={intent:lf.dataset.intent,
+    contact:{name:fd.get('name'),email:fd.get('email'),company:fd.get('company'),phone:fd.get('phone'),notes:fd.get('notes'),interest:fd.get('interest'),sendCopy:fd.get('sendCopy')==='on',consent:fd.get('consent')==='on'},
+    inputs:v, results:r, exampleId:ACTIVE_PRESET, assumptions:{weightSave:A.weightSave[v.rollerPosition],friction:r.fr},
+    disclaimer:{full:plain(DISC_FULL),exportFooter:plain(DISC_EXPORT)}, page:location.href, ts:new Date().toISOString()};
+  btn.disabled=true; ls.textContent='Sending…';
+  try{
+    const res=await fetch('/api/lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok) throw new Error('bad status');
+    ls.textContent='Thanks — we have your details and the exact inputs used. Our engineers will be in touch.'; lf.reset();
+  }catch(err){ ls.textContent='Sorry, that did not send. Please try again shortly.'; }
+  btn.disabled=false;
+});
+
+// ---------- Mode + URL state ----------
+function setMode(m){ document.body.classList.toggle('full',m==='full'); mQuick.classList.toggle('on',m!=='full'); mFull.classList.toggle('on',m==='full'); render(); }
+mQuick.onclick=()=>setMode('quick'); mFull.onclick=()=>setMode('full');
+function saveState(){
+  try{ const p=new URLSearchParams(); ids.forEach(id=>{const val=document.getElementById(id).value; if(val!=='') p.set(id,val);});
+    if(document.body.classList.contains('full')) p.set('mode','full');
+    if(ACTIVE_PRESET) p.set('ex',ACTIVE_PRESET);
+    history.replaceState(null,'','?'+p.toString()); }catch(e){}
+}
+(function load(){
+  const p=new URLSearchParams(location.search);
+  ids.forEach(id=>{ if(p.has(id)) document.getElementById(id).value=p.get(id); });
+  if(p.get('ex')){ ACTIVE_PRESET=p.get('ex'); updateNote(); }
+  else if(!p.has('currency')){ const g=guessCurrency(); if(g) document.getElementById('currency').value=g; }
+  document.getElementById('form').addEventListener('input',render);
+  setMode(p.get('mode')==='full'?'full':'quick');
+})();
+</script>
+</body>
+</html>
